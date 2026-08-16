@@ -4,7 +4,7 @@
 /* ---------- 存储 ---------- */
 const KEY = 'cycle.tracker.v1';
 function defaults() {
-  return { periods: [], intimacy: [], settings: { avgCycle: 28, luteal: 14, periodLen: 5, lightIntensity: 0.55, passcode: null, theme: 'system', reminders: { period: true, fertile: false } } };
+  return { periods: [], intimacy: [], settings: { avgCycle: 28, luteal: 14, periodLen: 5, lightIntensity: 0.55, passcode: null, theme: 'light', reminders: { period: true, fertile: false } }, _mig: { themeV1: false } };
 }
 function load() {
   try {
@@ -15,12 +15,19 @@ function load() {
       d.periods = Array.isArray(o.periods) ? o.periods : [];
       d.intimacy = Array.isArray(o.intimacy) ? o.intimacy : [];
       if (o.settings) d.settings = Object.assign(d.settings, o.settings);
+      if (o._mig) d._mig = Object.assign(d._mig, o._mig);
       return d;
     }
   } catch (e) { /* ignore */ }
   return defaults();
 }
 let S = load();
+/* 一次性迁移：旧默认主题（跟随系统）→ 浅色。仅执行一次，之后用户仍可手动切换回跟随系统 */
+if (S._mig && !S._mig.themeV1) {
+  if (!S.settings.theme || S.settings.theme === 'system') S.settings.theme = 'light';
+  S._mig.themeV1 = true;
+  save();
+}
 function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
@@ -676,7 +683,7 @@ function toast(msg) {
 
 /* ---------- 主题 ---------- */
 function applyTheme() {
-  const t = (S.settings && S.settings.theme) || 'system';
+  const t = (S.settings && S.settings.theme) || 'light';
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = t === 'system' ? (prefersDark ? 'dark' : 'light') : t;
   document.documentElement.setAttribute('data-theme', theme);
