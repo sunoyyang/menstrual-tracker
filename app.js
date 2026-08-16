@@ -22,6 +22,7 @@ function load() {
   return defaults();
 }
 let S = load();
+let editingPeriodId = null; /* 非空时表示正在修改某条已有经期 */
 /* 一次性迁移：旧默认主题（跟随系统）→ 浅色。仅执行一次，之后用户仍可手动切换回跟随系统 */
 if (S._mig && !S._mig.themeV1) {
   if (!S.settings.theme || S.settings.theme === 'system') S.settings.theme = 'light';
@@ -355,7 +356,7 @@ function modal(html, locked) {
   currentLocked = !!locked;
   document.getElementById('modalRoot').innerHTML = `<div class="modal-mask"><div class="modal">${html}</div></div>`;
 }
-function closeModal() { if (currentLocked) return; document.getElementById('modalRoot').innerHTML = ''; }
+function closeModal() { if (currentLocked) return; editingPeriodId = null; document.getElementById('modalRoot').innerHTML = ''; }
 function closeModalForce() { currentLocked = false; document.getElementById('modalRoot').innerHTML = ''; }
 
 function bindChips(sel, single) {
@@ -368,49 +369,70 @@ function bindChips(sel, single) {
 }
 function getChips(sel) { const box = document.querySelector(sel); return [...box.querySelectorAll('.chip.on')].map(c => c.dataset.v); }
 
-function openPeriodModal(prefill) {
-  const d = prefill || todayKey();
+function openPeriodModal(prefill, editId) {
+  editingPeriodId = editId || null;
+  const editing = !!editId;
+  const ep = editing ? S.periods.find(p => p.id === editId) : null;
+  const d = editing ? ep.start : (prefill || todayKey());
   const flowOpts = ['少', '中', '多'];
   const symOpts = ['腰酸', '乳房胀痛', '腹痛', '头痛', '乏力', '情绪波动'];
   const moodOpts = ['开心', '平静', '焦虑', '低落', '易怒'];
-  /* 检测是否有进行中的经期，用于显示「第几天」提示 */
-  const active = [...S.periods].reverse().find(p => !p.end);
-  /* 若有进行中的经期，默认选中「过程记录」而非「开始」，避免重复创建经期导致静默失败 */
-  const defaultType = active ? 'daily' : 'start';
-  const dayHint = active ? `<div class="day-hint" id="pDayHint">本轮经期第 <strong>${diffDays(active.start, d) + 1}</strong> 天（从 ${fmtMD(active.start)} 起算）</div>` : '';
-  modal(`<h2>记录经期</h2>
-   <div class="field"><label>类型</label><div class="seg" id="pType">
-     <div class="chip${defaultType === 'start' ? ' on' : ''}${active ? ' disabled' : ''}" data-v="start">开始</div><div class="chip${defaultType === 'daily' ? ' on' : ''}" data-v="daily">过程记录</div><div class="chip" data-v="end">结束本次</div></div></div>
-   ${active ? `<div class="field-note">已有进行中的经期（${fmtMD(active.start)} 起），无需再次「开始」。请用「过程记录」补充每日，或「结束本次」收尾。</div>` : ''}
-   <div class="field" id="pDateWrap"><label id="pDateLabel">${defaultType === 'start' ? '开始日期' : '记录日期'}</label><input type="date" id="pDate" value="${d}"></div>
+  /* 进行中的经期（编辑自身时排除自己） */
+  const active = [...S.periods].reverse().find(p => !p.end && p.id !== editId);
+  const defaultType = editing ? 'start' : (active ? 'daily' : 'start');
+  const dayHint = (!editing && active) ? `<div class="day-hint" id="pDayHint">本轮经期第 <strong>${diffDays(active.start, d) + 1}</strong> 天（从 ${fmtMD(active.start)} 起算）</div>` : '';
+  const title = editing ? '修改经期' : '记录经期';
+  let typeSeg;
+  if (editing) {
+    typeSeg = `<div class="seg" id="pType"><div class="chip on" data-v="start">修改开始日</div></div>`;
+  } else {
+    const startLabel = active ? '修改开始日' : '开始';
+    typeSeg = `<div class="seg" id="pType">
+      <div class="chip${defaultType === 'start' ? ' on' : ''}" data-v="start">${startLabel}</div><div class="chip${defaultType === 'daily' ? ' on' : ''}" data-v="daily">过程记录</div><div class="chip" data-v="end">结束本次</div></div>`;
+  }
+  let note = '';
+  if (editing) note = `<div class="field-note">正在修改从 ${fmtMD(ep.start)} 开始的这段经期，可调整开始日与经量/症状/心情。</div>`;
+  else if (active) note = `<div class="field-note">已有进行中的经期（${fmtMD(active.start)} 起）。点「修改开始日」可更正本轮的开始日；或用「过程记录」补充每日、「结束本次」收尾。</div>`;
+  const flowOn = (v) => (ep && ep.flow === v) || (!ep && v === '中') ? ' on' : '';
+  const symOn = (s) => (ep && ep.symptoms && ep.symptoms.includes(s)) ? ' on' : '';
+  const moodOn = (mm) => (ep && ep.mood === mm) ? ' on' : '';
+  modal(`<h2>${title}</h2>
+   <div class="field"><label>类型</label>${typeSeg}</div>
+   ${note}
+   <div class="field" id="pDateWrap"><label id="pDateLabel">开始日期</label><input type="date" id="pDate" value="${d}"></div>
    ${dayHint}
    <div class="field" id="pFlowWrap"><label>经量</label><div class="chips" id="pFlow">
-     ${flowOpts.map(f => `<div class="chip${f === '中' ? ' on' : ''}" data-v="${f}">${f}</div>`).join('')}</div></div>
+     ${flowOpts.map(f => `<div class="chip${flowOn(f)}" data-v="${f}">${f}</div>`).join('')}</div></div>
    <div class="field"><label>症状（可多选）</label><div class="chips" id="pSym">
-     ${symOpts.map(s => `<div class="chip" data-v="${s}">${s}</div>`).join('')}</div></div>
+     ${symOpts.map(s => `<div class="chip${symOn(s)}" data-v="${s}">${s}</div>`).join('')}</div></div>
    <div class="field"><label>心情</label><div class="chips" id="pMood">
-     ${moodOpts.map(mm => `<div class="chip" data-v="${mm}">${mm}</div>`).join('')}</div></div>
-   <div class="field"><label>异常备注（如白带异常/血块）</label><input id="pAbn" placeholder="选填"></div>
-   <div class="field"><label>备注</label><textarea id="pNote" placeholder="选填"></textarea></div>
+     ${moodOpts.map(mm => `<div class="chip${moodOn(mm)}" data-v="${mm}">${mm}</div>`).join('')}</div></div>
+   <div class="field"><label>异常备注（如白带异常/血块）</label><input id="pAbn" value="${ep && ep.abnormal ? esc(ep.abnormal) : ''}" placeholder="选填"></div>
+   <div class="field"><label>备注</label><textarea id="pNote" placeholder="选填">${ep && ep.note ? esc(ep.note) : ''}</textarea></div>
    <div class="actions"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn primary" data-action="save-period">保存</button></div>`);
   bindChips('#pFlow', true); bindChips('#pSym'); bindChips('#pMood', true);
-  document.getElementById('pType').addEventListener('click', (e) => {
-    const c = e.target.closest('.chip'); if (!c) return;
-    if (c.classList.contains('disabled')) return;
-    [...e.currentTarget.children].forEach(x => x.classList.remove('on')); c.classList.add('on');
-    const t = c.dataset.v;
-    const isEnd = t === 'end';
-    const isDaily = t === 'daily';
-    const isStart = t === 'start';
-    document.getElementById('pDateWrap').style.display = isEnd ? 'none' : '';
-    document.getElementById('pFlowWrap').style.display = isEnd ? 'none' : '';
-    document.getElementById('pDateLabel').textContent = isStart ? '开始日期' : '记录日期';
-    const hint = document.getElementById('pDayHint');
-    if (hint) hint.style.display = isDaily ? '' : 'none';
-  });
-  /* 初始化：根据默认类型显示/隐藏 dayHint */
+  const pType = document.getElementById('pType');
+  if (pType && !editing) {
+    pType.addEventListener('click', (e) => {
+      const c = e.target.closest('.chip'); if (!c) return;
+      const t = c.dataset.v;
+      if (t === 'start' && active) {
+        /* 已有进行中经期时点「修改开始日」→ 进入编辑当前经期模式 */
+        openPeriodModal(todayKey(), active.id);
+        return;
+      }
+      [...e.currentTarget.children].forEach(x => x.classList.remove('on')); c.classList.add('on');
+      const isEnd = t === 'end';
+      const isDaily = t === 'daily';
+      document.getElementById('pDateWrap').style.display = isEnd ? 'none' : '';
+      document.getElementById('pFlowWrap').style.display = isEnd ? 'none' : '';
+      document.getElementById('pDateLabel').textContent = '开始日期';
+      const hint = document.getElementById('pDayHint');
+      if (hint) hint.style.display = isDaily ? '' : 'none';
+    });
+  }
   const hint0 = document.getElementById('pDayHint');
-  if (hint0) hint0.style.display = defaultType === 'daily' ? '' : 'none';
+  if (hint0) hint0.style.display = (!editing && defaultType === 'daily') ? '' : 'none';
 }
 
 function savePeriod() {
@@ -447,10 +469,29 @@ function savePeriod() {
     return;
   }
   /* type === 'start' */
-  /* 已有进行中的经期时，禁止再新建一条，避免重复覆盖今天统计 */
+  if (editingPeriodId) {
+    /* 编辑已有经期的开始日 */
+    const ep = S.periods.find(p => p.id === editingPeriodId);
+    if (!ep) { editingPeriodId = null; return; }
+    const date = document.getElementById('pDate').value;
+    if (!date) { toast('请选择日期'); return; }
+    if (S.periods.some(p => p.id !== editingPeriodId && p.start === date)) { toast('该日已有其它经期记录'); return; }
+    const flow = getChips('#pFlow')[0] || '中';
+    const sym = getChips('#pSym');
+    const mood = getChips('#pMood')[0] || '';
+    const abn = document.getElementById('pAbn').value.trim();
+    const note = document.getElementById('pNote').value.trim();
+    ep.start = date; ep.flow = flow; ep.symptoms = sym; ep.mood = mood; ep.abnormal = abn; ep.note = note;
+    /* 开始日改动后，移除早于新开始日的过程记录，保持数据一致 */
+    if (Array.isArray(ep.daily)) ep.daily = ep.daily.filter(r => r.date >= date);
+    editingPeriodId = null;
+    save(); closeModal(); render(); toast('已修改经期开始日');
+    return;
+  }
+  /* 非编辑：已有进行中的经期时，禁止再新建一条，避免重复覆盖今天统计 */
   const openExisting = S.periods.find(p => !p.end);
   if (openExisting) {
-    toast('已有进行中的经期（从 ' + fmtMD(openExisting.start) + ' 起），请使用「过程记录」或「结束本次」');
+    toast('已有进行中的经期（从 ' + fmtMD(openExisting.start) + ' 起），请用「修改开始日」或「过程记录」');
     return;
   }
   const date = document.getElementById('pDate').value;
@@ -571,7 +612,7 @@ function openDaySheet(dateStr) {
   const startP = S.periods.find(pp => pp.start === dateStr);
   html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>`;
   if (startP) {
-    html += `<div class="actions"><button class="btn danger" data-action="delete-period" data-id="${startP.id}">删除这条经期记录</button></div>`;
+    html += `<div class="actions"><button class="btn" data-action="edit-period" data-date="${dateStr}" data-id="${startP.id}">✏️ 修改本段经期</button><button class="btn danger" data-action="delete-period" data-id="${startP.id}">删除这条经期记录</button></div>`;
   }
   html += `<div class="actions"><button class="btn ghost" data-action="close-modal">关闭</button></div>`;
   modal(html);
@@ -590,6 +631,7 @@ function deletePeriod(id) {
 function doAction(a, el) {
   switch (a) {
     case 'open-period': openPeriodModal(el && el.dataset.date); break;
+    case 'edit-period': openPeriodModal(el && el.dataset.date, el.dataset.id); break;
     case 'open-intimacy': openIntimacyModal(el && el.dataset.date); break;
     case 'save-period': savePeriod(); break;
     case 'save-intimacy': saveIntimacy(); break;
