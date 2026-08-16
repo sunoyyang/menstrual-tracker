@@ -306,8 +306,8 @@ function renderMe() {
   const li = Math.round((st.lightIntensity != null ? st.lightIntensity : 0.55) * 100);
   return `<div class="me-hero">
     <div class="avatar">🌸</div>
-    <div class="me-name">小杜经期小记</div>
-    <div class="me-sub">Yyy开发for小杜 · 纯净私密本地记录</div>
+    <div class="me-name">经期小记</div>
+    <div class="me-sub">Yyy开发 · 纯净私密本地记录</div>
   </div>
   <div class="card"><h3>外观</h3>
     <div class="field"><label>主题</label><div class="seg" id="pTheme">
@@ -334,7 +334,7 @@ function renderMe() {
     <div class="actions"><button class="btn" data-action="export">导出备份(JSON)</button><button class="btn" data-action="import">导入</button></div>
     <div class="actions"><button class="btn ghost" data-action="clear-data">清空所有数据</button></div>
   </div>
-  <div class="me-foot">小杜经期小记 v0.2 · 所有预测均为参考值，如有健康疑问请咨询医生。</div>`;
+  <div class="me-foot">经期小记 v0.2 · 所有预测均为参考值，如有健康疑问请咨询医生。</div>`;
 }
 
 function render() {
@@ -345,7 +345,7 @@ function render() {
   else v.innerHTML = renderMe();
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentTab));
   const sub = { today: '今天', calendar: '日历', stats: '统计', me: '我的' }[currentTab];
-  document.getElementById('headerSub').textContent = 'Yyy开发for小杜 · ' + sub;
+  document.getElementById('headerSub').textContent = 'Yyy开发 · ' + sub;
   // 「我的」页隐藏顶部栏（页内已有 hero 卡片展示标题，避免重复）
   const hdr = document.querySelector('.app-header');
   if (hdr) hdr.classList.toggle('force-hide', currentTab === 'me');
