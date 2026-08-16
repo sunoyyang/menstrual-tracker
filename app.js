@@ -231,10 +231,13 @@ function renderCalendar() {
   const lp = latestPeriod();
   const lpEndEst = lp ? periodEndEst(lp) : null;
   const t = todayKey();
+  /* 收集「有过程记录（每日记录）」的日期，用于在日历上做标记 */
+  const procSet = new Set();
+  S.periods.forEach(p => { if (Array.isArray(p.daily)) p.daily.forEach(r => procSet.add(r.date)); });
   let cells = '';
   for (let i = 0; i < startDow; i++) cells += `<div></div>`;
   for (let d = 1; d <= daysInMon; d++) {
-    const ds = dayKey(new Date(y, m, d - 1));
+    const ds = dayKey(new Date(y, m, d));
     let cls = 'day';
     if (set.has(ds)) cls += ' period';
     else if (lp && !lp.end && ds > lp.start && ds <= lpEndEst) cls += ' period-pred';
@@ -242,11 +245,12 @@ function renderCalendar() {
     if (ds === ovu) cls += ' ovu';
     if (ds === t) cls += ' today';
     const hasIns = S.intimacy.some(r => r.date === ds);
-    cells += `<div class="${cls}" data-action="day-open" data-date="${ds}">${d}${hasIns ? '<span class="dot"></span>' : ''}</div>`;
+    const hasProc = procSet.has(ds);
+    cells += `<div class="${cls}" data-action="day-open" data-date="${ds}">${d}${hasIns ? '<span class="dot"></span>' : ''}${hasProc ? '<span class="pdot" title="有过程记录"></span>' : ''}</div>`;
   }
   return `<div class="cal-head"><button data-action="cal-prev">‹</button><div class="m">${y}年${m + 1}月</div><button data-action="cal-next">›</button></div>
    <div class="cal-grid"><div class="cal-dow">一</div><div class="cal-dow">二</div><div class="cal-dow">三</div><div class="cal-dow">四</div><div class="cal-dow">五</div><div class="cal-dow">六</div><div class="cal-dow">日</div>${cells}</div>
-   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i style="background:var(--pink-deep);border-radius:50%;width:8px;height:8px"></i>亲密</span></div>`;
+   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i style="background:var(--pink-deep);border-radius:50%;width:8px;height:8px"></i>亲密</span><span><i style="background:#fff;box-shadow:0 0 0 1.5px rgba(236,106,152,.6);border-radius:50%;width:8px;height:8px"></i>过程记录</span></div>`;
 }
 
 function renderStats() {
@@ -518,50 +522,46 @@ function saveIntimacy() {
 }
 
 function openDaySheet(dateStr) {
-  const ps = S.periods.filter(p => p.start === dateStr || p.end === dateStr);
-  /* 也查找包含该日期的过程记录 */
-  const psWithDaily = S.periods.filter(p => {
-    if (p.start === dateStr || p.end === dateStr) return true;
-    if (!Array.isArray(p.daily)) return false;
-    const [st, en] = periodSpan(p);
-    return dateStr >= st && dateStr <= en && p.daily.some(r => r.date === dateStr);
-  });
+  const p = periodAt(dateStr); // 覆盖该日期的经期（重叠时取最早开始的）
   const ins = S.intimacy.filter(r => r.date === dateStr);
   let html = `<h2>${fmtFull(dateStr)}</h2>`;
-  if (psWithDaily.length || ins.length) {
-    html += `<div class="card" style="box-shadow:none;margin-bottom:12px">`;
-    psWithDaily.forEach(p => {
-      const isStart = p.start === dateStr;
-      const isEnd = p.end === dateStr;
-      const dayNum = diffDays(p.start, dateStr) + 1;
-      let tag = '';
-      if (isStart) tag = '经期开始';
-      else if (isEnd) tag = '经期结束';
-      else tag = `第 ${dayNum} 天`;
-      /* 显示周期主记录（开始日）或过程记录详情 */
-      if (isStart) {
-        html += `<div class="row"><span class="label"><b>🌸 ${tag}</b></span><span class="val">${p.flow || ''} ${p.symptoms && p.symptoms.length ? '· ' + p.symptoms.join('/') : ''}</span></div>`;
-        if (p.mood) html += `<div class="row"><span class="label">心情</span><span class="val">${p.mood}</span></div>`;
-        if (p.abnormal) html += `<div class="row"><span class="label">异常</span><span class="val">${esc(p.abnormal)}</span></div>`;
-        if (p.note) html += `<div class="row"><span class="label">备注</span><span class="val">${esc(p.note)}</span></div>`;
-      } else if (isEnd) {
-        html += `<div class="row"><span class="label"><b>✅ ${tag}</b></span><span class="val"></span></div>`;
-      }
-      /* 展示该日的 daily 过程记录 */
-      if (Array.isArray(p.daily)) {
-        p.daily.filter(r => r.date === dateStr).forEach(dr => {
-          html += `<div class="row" style="margin-top:6px;border-top:1px dashed rgba(236,106,152,.2);padding-top:6px"><span class="label"><b>📝 ${tag}</b></span><span class="val">${dr.flow || ''} ${dr.symptoms && dr.symptoms.length ? '· ' + dr.symptoms.join('/') : ''}</span></div>`;
-          if (dr.mood) html += `<div class="row"><span class="label">心情</span><span class="val">${dr.mood}</span></div>`;
-          if (dr.abnormal) html += `<div class="row"><span class="label">异常</span><span class="val">${esc(dr.abnormal)}</span></div>`;
-          if (dr.note) html += `<div class="row"><span class="label">备注</span><span class="val">${esc(dr.note)}</span></div>`;
+  const rows = [];
+  if (p) {
+    const dayNum = diffDays(p.start, dateStr) + 1;
+    const isStart = p.start === dateStr;
+    const isEnd = p.end === dateStr;
+    const daily = Array.isArray(p.daily) ? p.daily.filter(r => r.date === dateStr) : [];
+    if (isStart) {
+      /* 经期开始日：展示主记录 */
+      let tag = '🌸 经期开始';
+      rows.push(`<div class="row"><span class="label"><b>${tag}</b> · 第 ${dayNum} 天</span><span class="val">${p.flow || ''} ${p.symptoms && p.symptoms.length ? '· ' + p.symptoms.join('/') : ''}</span></div>`);
+      if (p.mood) rows.push(`<div class="row"><span class="label">心情</span><span class="val">${p.mood}</span></div>`);
+      if (p.abnormal) rows.push(`<div class="row"><span class="label">异常</span><span class="val">${esc(p.abnormal)}</span></div>`);
+      if (p.note) rows.push(`<div class="row"><span class="label">备注</span><span class="val">${esc(p.note)}</span></div>`);
+    } else if (isEnd) {
+      rows.push(`<div class="row"><span class="label"><b>✅ 经期结束</b> · 第 ${dayNum} 天</span><span class="val"></span></div>`);
+    } else {
+      /* 经期过程日 */
+      if (daily.length) {
+        daily.forEach(dr => {
+          rows.push(`<div class="row"><span class="label"><b>📝 经期过程</b> · 第 ${dayNum} 天</span><span class="val">${dr.flow || ''} ${dr.symptoms && dr.symptoms.length ? '· ' + dr.symptoms.join('/') : ''}</span></div>`);
+          if (dr.mood) rows.push(`<div class="row"><span class="label">心情</span><span class="val">${dr.mood}</span></div>`);
+          if (dr.abnormal) rows.push(`<div class="row"><span class="label">异常</span><span class="val">${esc(dr.abnormal)}</span></div>`);
+          if (dr.note) rows.push(`<div class="row"><span class="label">备注</span><span class="val">${esc(dr.note)}</span></div>`);
         });
+      } else {
+        rows.push(`<div class="row"><span class="label"><b>📝 经期过程</b> · 第 ${dayNum} 天</span><span class="val" style="color:var(--ink-2)">暂无过程记录，点下方「记经期」补充</span></div>`);
       }
-    });
-    ins.forEach(r => { html += `<div class="row" style="margin-top:6px;border-top:1px dashed rgba(156,136,255,.25);padding-top:6px"><span class="label">${r.hadSex ? '💕 爱爱' : '亲密'}${r.contraception !== 'none' ? ' · ' + conLabel(r.contraception) : ''}</span><span class="val">${esc(r.note || '')}</span></div>`; });
-    html += `</div>`;
-  } else { html += `<div class="empty">这一天还没有记录</div>`; }
+    }
+  }
+  ins.forEach(r => { rows.push(`<div class="row" style="margin-top:6px;border-top:1px dashed rgba(156,136,255,.25);padding-top:6px"><span class="label">${r.hadSex ? '💕 爱爱' : '亲密'}${r.contraception !== 'none' ? ' · ' + conLabel(r.contraception) : ''}</span><span class="val">${esc(r.note || '')}</span></div>`); });
+  if (rows.length) {
+    html += `<div class="card" style="box-shadow:none;margin-bottom:12px">${rows.join('')}</div>`;
+  } else {
+    html += `<div class="empty">这一天还没有记录</div>`;
+  }
   /* 若该日是某条经期的「开始日」，允许删除整条经期（用于修正误点的开始） */
-  const startP = S.periods.find(p => p.start === dateStr);
+  const startP = S.periods.find(pp => pp.start === dateStr);
   html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>`;
   if (startP) {
     html += `<div class="actions"><button class="btn danger" data-action="delete-period" data-id="${startP.id}">删除这条经期记录</button></div>`;
