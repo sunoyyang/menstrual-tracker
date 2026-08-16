@@ -152,7 +152,7 @@ let currentLocked = false;
 function renderToday() {
   const t = todayKey();
   const p = periodAt(t);
-  let phase, countHtml, sub;
+  let phase, countHtml, sub, dailyHtml = '';
   if (p) {
     const start = p.start;
     const d = diffDays(start, t) + 1;
@@ -164,6 +164,23 @@ function renderToday() {
     phase = '月经期';
     countHtml = `<div class="count">${d}<small> 天</small></div>`;
     sub = `${endMsg} · 当前第 ${d} 天`;
+    /* 展示今日过程记录（如果有） */
+    if (Array.isArray(p.daily)) {
+      const todayRec = p.daily.find(r => r.date === t);
+      if (todayRec) {
+        const dsym = todayRec.symptoms && todayRec.symptoms.length ? todayRec.symptoms.join(' ') : '';
+        dailyHtml = `<div class="today-daily">
+          <span class="td-flow">${todayRec.flow || ''}</span>
+          ${dsym ? `<span class="td-sym">${esc(dsym)}</span>` : ''}
+          ${todayRec.mood ? `<span class="td-mood">· ${todayRec.mood}</span>` : ''}
+        </div>`;
+      }
+      /* 已记录天数提示 */
+      const recCnt = p.daily.length;
+      if (recCnt > 0) {
+        sub += ` <small class="daily-badge">已记录 ${recCnt}/${d} 天</small>`;
+      }
+    }
   } else {
     const lp = latestPeriod();
     if (!lp) {
@@ -193,6 +210,7 @@ function renderToday() {
       <div class="phase">${phase}</div>
       ${countHtml}
       <div class="sub">${sub}</div>
+      ${dailyHtml}
     </div>
     <div class="btn-row">
       <button class="btn" data-action="open-period">记经期</button>
@@ -248,7 +266,19 @@ function renderStats() {
     [...ps].reverse().slice(0, 12).forEach(p => {
       const len = p.end ? diffDays(p.start, p.end) + 1 : null;
       const sym = (p.symptoms && p.symptoms.length) ? ' · ' + esc(p.symptoms.join('/')) : '';
-      html += `<div class="row"><span class="label">${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : '（进行中）'}</span><span class="val">${p.flow || ''}${sym} ${len ? len + '天' : ''}</span></div>`;
+      const dailyCnt = Array.isArray(p.daily) ? p.daily.length : 0;
+      const dailyTag = dailyCnt > 0 ? ` <small style="color:var(--purple)">(${dailyCnt}天过程)</small>` : '';
+      html += `<div class="row"><span class="label">${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : '（进行中）'}</span><span class="val">${p.flow || ''}${sym} ${len ? len + '天' : ''}${dailyTag}</span></div>`;
+      /* 展示每日过程记录摘要（折叠式） */
+      if (Array.isArray(p.daily) && p.daily.length > 0) {
+        html += `<div class="daily-summary">`;
+        p.daily.forEach(dr => {
+          const dn = diffDays(p.start, dr.date) + 1;
+          const dsym = dr.symptoms && dr.symptoms.length ? ' · ' + esc(dr.symptoms.join('/')) : '';
+          html += `<div class="row sub-row"><span class="label">第${dn}天 ${fmtMD(dr.date)}</span><span class="val">${dr.flow || ''}${dsym} ${dr.mood || ''}</span></div>`;
+        });
+        html += `</div>`;
+      }
     });
     html += `</div>`;
   } else {
@@ -330,10 +360,16 @@ function openPeriodModal(prefill) {
   const flowOpts = ['少', '中', '多'];
   const symOpts = ['腰酸', '乳房胀痛', '腹痛', '头痛', '乏力', '情绪波动'];
   const moodOpts = ['开心', '平静', '焦虑', '低落', '易怒'];
+  /* 检测是否有进行中的经期，用于显示「第几天」提示 */
+  const active = [...S.periods].reverse().find(p => !p.end);
+  /* 若有进行中的经期，默认选中「过程记录」而非「开始」，避免重复创建经期导致静默失败 */
+  const defaultType = active ? 'daily' : 'start';
+  const dayHint = active ? `<div class="day-hint" id="pDayHint">本轮经期第 <strong>${diffDays(active.start, d) + 1}</strong> 天（从 ${fmtMD(active.start)} 起算）</div>` : '';
   modal(`<h2>记录经期</h2>
    <div class="field"><label>类型</label><div class="seg" id="pType">
-     <div class="chip on" data-v="start">开始</div><div class="chip" data-v="end">结束本次</div></div></div>
-   <div class="field" id="pDateWrap"><label>开始日期</label><input type="date" id="pDate" value="${d}"></div>
+     <div class="chip${defaultType === 'start' ? ' on' : ''}" data-v="start">开始</div><div class="chip${defaultType === 'daily' ? ' on' : ''}" data-v="daily">过程记录</div><div class="chip" data-v="end">结束本次</div></div></div>
+   <div class="field" id="pDateWrap"><label id="pDateLabel">${defaultType === 'start' ? '开始日期' : '记录日期'}</label><input type="date" id="pDate" value="${d}"></div>
+   ${dayHint}
    <div class="field" id="pFlowWrap"><label>经量</label><div class="chips" id="pFlow">
      ${flowOpts.map(f => `<div class="chip${f === '中' ? ' on' : ''}" data-v="${f}">${f}</div>`).join('')}</div></div>
    <div class="field"><label>症状（可多选）</label><div class="chips" id="pSym">
@@ -347,10 +383,19 @@ function openPeriodModal(prefill) {
   document.getElementById('pType').addEventListener('click', (e) => {
     const c = e.target.closest('.chip'); if (!c) return;
     [...e.currentTarget.children].forEach(x => x.classList.remove('on')); c.classList.add('on');
-    const end = c.dataset.v === 'end';
-    document.getElementById('pDateWrap').style.display = end ? 'none' : '';
-    document.getElementById('pFlowWrap').style.display = end ? 'none' : '';
+    const t = c.dataset.v;
+    const isEnd = t === 'end';
+    const isDaily = t === 'daily';
+    const isStart = t === 'start';
+    document.getElementById('pDateWrap').style.display = isEnd ? 'none' : '';
+    document.getElementById('pFlowWrap').style.display = isEnd ? 'none' : '';
+    document.getElementById('pDateLabel').textContent = isStart ? '开始日期' : '记录日期';
+    const hint = document.getElementById('pDayHint');
+    if (hint) hint.style.display = isDaily ? '' : 'none';
   });
+  /* 初始化：根据默认类型显示/隐藏 dayHint */
+  const hint0 = document.getElementById('pDayHint');
+  if (hint0) hint0.style.display = defaultType === 'daily' ? '' : 'none';
 }
 
 function savePeriod() {
@@ -362,6 +407,31 @@ function savePeriod() {
     save(); closeModal(); render(); toast('已记录经期结束');
     return;
   }
+  if (type === 'daily') {
+    const active = [...S.periods].reverse().find(p => !p.end);
+    if (!active) { toast('没有进行中的经期，请先记录「开始」'); return; }
+    const date = document.getElementById('pDate').value;
+    if (!date) { toast('请选择日期'); return; }
+    /* 日期必须在经期范围内 */
+    if (date < active.start) { toast('记录日期不能早于经期开始日'); return; }
+    if (active.end && date > active.end) { toast('记录日期不能晚于经期结束日'); return; }
+    const flow = getChips('#pFlow')[0] || '中';
+    const sym = getChips('#pSym');
+    const mood = getChips('#pMood')[0] || '';
+    const abn = document.getElementById('pAbn').value.trim();
+    const note = document.getElementById('pNote').value.trim();
+    /* 追加到 daily 数组（允许同一天多次记录，后者覆盖或并列展示） */
+    if (!Array.isArray(active.daily)) active.daily = [];
+    /* 移除同日期旧记录（简单覆盖） */
+    active.daily = active.daily.filter(r => r.date !== date);
+    active.daily.push({ date, flow, symptoms: sym, abnormal: abn, mood, note });
+    active.daily.sort((a, b) => a.date.localeCompare(b.date));
+    save(); closeModal(); render();
+    const dayNum = diffDays(active.start, date) + 1;
+    toast(`已保存第 ${dayNum} 天过程记录`);
+    return;
+  }
+  /* type === 'start' */
   const date = document.getElementById('pDate').value;
   const flow = getChips('#pFlow')[0] || '中';
   const sym = getChips('#pSym');
@@ -369,7 +439,7 @@ function savePeriod() {
   const abn = document.getElementById('pAbn').value.trim();
   const note = document.getElementById('pNote').value.trim();
   if (S.periods.some(p => p.start === date)) { toast('该日已有经期记录'); return; }
-  S.periods.push({ id: uid(), start: date, end: null, flow, symptoms: sym, abnormal: abn, mood, note });
+  S.periods.push({ id: uid(), start: date, end: null, flow, symptoms: sym, abnormal: abn, mood, note, daily: [] });
   save(); closeModal(); render(); toast('已保存');
 }
 
@@ -439,12 +509,45 @@ function saveIntimacy() {
 
 function openDaySheet(dateStr) {
   const ps = S.periods.filter(p => p.start === dateStr || p.end === dateStr);
+  /* 也查找包含该日期的过程记录 */
+  const psWithDaily = S.periods.filter(p => {
+    if (p.start === dateStr || p.end === dateStr) return true;
+    if (!Array.isArray(p.daily)) return false;
+    const [st, en] = periodSpan(p);
+    return dateStr >= st && dateStr <= en && p.daily.some(r => r.date === dateStr);
+  });
   const ins = S.intimacy.filter(r => r.date === dateStr);
   let html = `<h2>${fmtFull(dateStr)}</h2>`;
-  if (ps.length || ins.length) {
+  if (psWithDaily.length || ins.length) {
     html += `<div class="card" style="box-shadow:none;margin-bottom:12px">`;
-    ps.forEach(p => { html += `<div class="row"><span class="label">经期 ${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : ''}</span><span class="val">${p.flow || ''}</span></div>`; });
-    ins.forEach(r => { html += `<div class="row"><span class="label">${r.hadSex ? '爱爱' : '亲密'}${r.contraception !== 'none' ? ' · ' + conLabel(r.contraception) : ''}</span><span class="val">${esc(r.note || '')}</span></div>`; });
+    psWithDaily.forEach(p => {
+      const isStart = p.start === dateStr;
+      const isEnd = p.end === dateStr;
+      const dayNum = diffDays(p.start, dateStr) + 1;
+      let tag = '';
+      if (isStart) tag = '经期开始';
+      else if (isEnd) tag = '经期结束';
+      else tag = `第 ${dayNum} 天`;
+      /* 显示周期主记录（开始日）或过程记录详情 */
+      if (isStart) {
+        html += `<div class="row"><span class="label"><b>🌸 ${tag}</b></span><span class="val">${p.flow || ''} ${p.symptoms && p.symptoms.length ? '· ' + p.symptoms.join('/') : ''}</span></div>`;
+        if (p.mood) html += `<div class="row"><span class="label">心情</span><span class="val">${p.mood}</span></div>`;
+        if (p.abnormal) html += `<div class="row"><span class="label">异常</span><span class="val">${esc(p.abnormal)}</span></div>`;
+        if (p.note) html += `<div class="row"><span class="label">备注</span><span class="val">${esc(p.note)}</span></div>`;
+      } else if (isEnd) {
+        html += `<div class="row"><span class="label"><b>✅ ${tag}</b></span><span class="val"></span></div>`;
+      }
+      /* 展示该日的 daily 过程记录 */
+      if (Array.isArray(p.daily)) {
+        p.daily.filter(r => r.date === dateStr).forEach(dr => {
+          html += `<div class="row" style="margin-top:6px;border-top:1px dashed rgba(236,106,152,.2);padding-top:6px"><span class="label"><b>📝 ${tag}</b></span><span class="val">${dr.flow || ''} ${dr.symptoms && dr.symptoms.length ? '· ' + dr.symptoms.join('/') : ''}</span></div>`;
+          if (dr.mood) html += `<div class="row"><span class="label">心情</span><span class="val">${dr.mood}</span></div>`;
+          if (dr.abnormal) html += `<div class="row"><span class="label">异常</span><span class="val">${esc(dr.abnormal)}</span></div>`;
+          if (dr.note) html += `<div class="row"><span class="label">备注</span><span class="val">${esc(dr.note)}</span></div>`;
+        });
+      }
+    });
+    ins.forEach(r => { html += `<div class="row" style="margin-top:6px;border-top:1px dashed rgba(156,136,255,.25);padding-top:6px"><span class="label">${r.hadSex ? '💕 爱爱' : '亲密'}${r.contraception !== 'none' ? ' · ' + conLabel(r.contraception) : ''}</span><span class="val">${esc(r.note || '')}</span></div>`; });
     html += `</div>`;
   } else { html += `<div class="empty">这一天还没有记录</div>`; }
   html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>

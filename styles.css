@@ -399,3 +399,39 @@ body {
 .toast.show { opacity: 1; }
 
 .empty { text-align: center; color: var(--ink-2); font-size: 13px; padding: 30px 10px; }
+
+/* 过程记录 — 第几天提示 */
+.day-hint {
+  text-align: center; font-size: 13px; color: var(--purple);
+  background: rgba(179, 157, 219, 0.1); border-radius: 10px;
+  padding: 8px 12px; margin-bottom: 4px;
+}
+.day-hint strong { color: var(--pink-deep); }
+
+/* 统计页 — 每日过程记录摘要 */
+.daily-summary {
+  margin: 4px 0 8px 16px; padding: 6px 10px;
+  background: rgba(179, 157, 219, 0.06); border-radius: 10px;
+  border-left: 3px solid rgba(179, 157, 219, 0.3);
+}
+.sub-row { padding: 6px 0; border-bottom: none; font-size: 13px; }
+.sub-row .label { color: var(--ink-2); }
+.sub-row .val { font-size: 12px; }
+
+/* 今天页 — 过程记录展示 */
+.today-daily {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 8px 12px;
+  background: rgba(179, 157, 219, 0.1); border-radius: 10px;
+  font-size: 13px;
+}
+.td-flow {
+  display: inline-block; padding: 2px 10px; border-radius: 8px;
+  background: rgba(244, 143, 177, 0.18); color: var(--pink-deep); font-size: 12px; font-weight: 600;
+}
+.td-sym { color: var(--ink-2); font-size: 12px; }
+.td-mood { color: var(--purple); font-size: 12px; }
+.daily-badge {
+  display: inline-block; padding: 1px 8px; border-radius: 10px;
+  background: rgba(179, 157, 219, 0.18); color: var(--purple); font-size: 11px; vertical-align: middle;
+}
