@@ -307,7 +307,7 @@ function renderMe() {
   return `<div class="me-hero">
     <div class="avatar">🌸</div>
     <div class="me-name">经期小记</div>
-    <div class="me-sub">Yyy开发 · 纯净私密本地记录</div>
+    <div class="me-sub">Yyy 设计开发 · 纯净私密本地记录</div>
   </div>
   <div class="card"><h3>外观</h3>
     <div class="field"><label>主题</label><div class="seg" id="pTheme">
@@ -345,7 +345,7 @@ function render() {
   else v.innerHTML = renderMe();
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentTab));
   const sub = { today: '今天', calendar: '日历', stats: '统计', me: '我的' }[currentTab];
-  document.getElementById('headerSub').textContent = 'Yyy开发 · ' + sub;
+  document.getElementById('headerSub').textContent = 'Yyy 设计开发 · ' + sub;
   // 「我的」页隐藏顶部栏（页内已有 hero 卡片展示标题，避免重复）
   const hdr = document.querySelector('.app-header');
   if (hdr) hdr.classList.toggle('force-hide', currentTab === 'me');
