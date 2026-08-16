@@ -89,10 +89,12 @@ function periodSpan(p) {
   if (!p.end) { const est = periodEndEst(p); const td = todayKey(); end = td > est ? est : td; }
   return [start, end];
 }
-/* 某天落在哪个经期（含进行中延展），返回该 period 或 null */
+/* 某天落在哪个经期（含进行中延展），返回该 period 或 null
+   当存在重叠的进行中经期时，优先返回「开始日最早」的那条（即真正的本轮经期，
+   避免误点「开始」生成的假经期覆盖今天的统计） */
 function periodAt(dateStr) {
-  const ps = sortedPeriods();
-  for (let i = ps.length - 1; i >= 0; i--) {
+  const ps = sortedPeriods(); // 已按 start 升序
+  for (let i = 0; i < ps.length; i++) {
     const [s, e] = periodSpan(ps[i]);
     if (dateStr >= s && dateStr <= e) return ps[i];
   }
@@ -367,7 +369,8 @@ function openPeriodModal(prefill) {
   const dayHint = active ? `<div class="day-hint" id="pDayHint">本轮经期第 <strong>${diffDays(active.start, d) + 1}</strong> 天（从 ${fmtMD(active.start)} 起算）</div>` : '';
   modal(`<h2>记录经期</h2>
    <div class="field"><label>类型</label><div class="seg" id="pType">
-     <div class="chip${defaultType === 'start' ? ' on' : ''}" data-v="start">开始</div><div class="chip${defaultType === 'daily' ? ' on' : ''}" data-v="daily">过程记录</div><div class="chip" data-v="end">结束本次</div></div></div>
+     <div class="chip${defaultType === 'start' ? ' on' : ''}${active ? ' disabled' : ''}" data-v="start">开始</div><div class="chip${defaultType === 'daily' ? ' on' : ''}" data-v="daily">过程记录</div><div class="chip" data-v="end">结束本次</div></div></div>
+   ${active ? `<div class="field-note">已有进行中的经期（${fmtMD(active.start)} 起），无需再次「开始」。请用「过程记录」补充每日，或「结束本次」收尾。</div>` : ''}
    <div class="field" id="pDateWrap"><label id="pDateLabel">${defaultType === 'start' ? '开始日期' : '记录日期'}</label><input type="date" id="pDate" value="${d}"></div>
    ${dayHint}
    <div class="field" id="pFlowWrap"><label>经量</label><div class="chips" id="pFlow">
@@ -382,6 +385,7 @@ function openPeriodModal(prefill) {
   bindChips('#pFlow', true); bindChips('#pSym'); bindChips('#pMood', true);
   document.getElementById('pType').addEventListener('click', (e) => {
     const c = e.target.closest('.chip'); if (!c) return;
+    if (c.classList.contains('disabled')) return;
     [...e.currentTarget.children].forEach(x => x.classList.remove('on')); c.classList.add('on');
     const t = c.dataset.v;
     const isEnd = t === 'end';
@@ -432,6 +436,12 @@ function savePeriod() {
     return;
   }
   /* type === 'start' */
+  /* 已有进行中的经期时，禁止再新建一条，避免重复覆盖今天统计 */
+  const openExisting = S.periods.find(p => !p.end);
+  if (openExisting) {
+    toast('已有进行中的经期（从 ' + fmtMD(openExisting.start) + ' 起），请使用「过程记录」或「结束本次」');
+    return;
+  }
   const date = document.getElementById('pDate').value;
   const flow = getChips('#pFlow')[0] || '中';
   const sym = getChips('#pSym');
@@ -550,9 +560,23 @@ function openDaySheet(dateStr) {
     ins.forEach(r => { html += `<div class="row" style="margin-top:6px;border-top:1px dashed rgba(156,136,255,.25);padding-top:6px"><span class="label">${r.hadSex ? '💕 爱爱' : '亲密'}${r.contraception !== 'none' ? ' · ' + conLabel(r.contraception) : ''}</span><span class="val">${esc(r.note || '')}</span></div>`; });
     html += `</div>`;
   } else { html += `<div class="empty">这一天还没有记录</div>`; }
-  html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>
-   <div class="actions"><button class="btn ghost" data-action="close-modal">关闭</button></div>`;
+  /* 若该日是某条经期的「开始日」，允许删除整条经期（用于修正误点的开始） */
+  const startP = S.periods.find(p => p.start === dateStr);
+  html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>`;
+  if (startP) {
+    html += `<div class="actions"><button class="btn danger" data-action="delete-period" data-id="${startP.id}">删除这条经期记录</button></div>`;
+  }
+  html += `<div class="actions"><button class="btn ghost" data-action="close-modal">关闭</button></div>`;
   modal(html);
+}
+
+/* 删除整条经期记录（含其过程记录） */
+function deletePeriod(id) {
+  const p = S.periods.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm('确定删除这条经期记录吗？\n（从 ' + fmtMD(p.start) + ' 起的整段记录都会被移除）')) return;
+  S.periods = S.periods.filter(x => x.id !== id);
+  save(); closeModal(); render(); toast('已删除该经期记录');
 }
 
 /* ---------- 动作分发 ---------- */
@@ -562,6 +586,7 @@ function doAction(a, el) {
     case 'open-intimacy': openIntimacyModal(el && el.dataset.date); break;
     case 'save-period': savePeriod(); break;
     case 'save-intimacy': saveIntimacy(); break;
+    case 'delete-period': deletePeriod(el.dataset.id); break;
     case 'day-open': openDaySheet(el.dataset.date); break;
     case 'cal-prev': calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); render(); break;
     case 'cal-next': calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); render(); break;
