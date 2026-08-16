@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f48fb1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="小杜经期小记" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>小杜经期小记</title>
+</head>
+<body>
+  <div class="app-wrap">
+  <div class="aurora" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+  </div>
+
+  <header class="app-header">
+    <div class="brand">小杜经期小记</div>
+    <div class="brand-sub" id="headerSub">Yyy开发for小杜</div>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <nav class="tabbar">
+    <button class="tab" data-tab="today">
+      <span class="tab-ico"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9C1 8 3 4 7 4c2 0 3 1 5 3 2-2 3-3 5-3 4 0 6 4 4.5 8C19 16.5 12 21 12 21z"/></svg></span>
+      <span>今天</span>
+    </button>
+    <button class="tab" data-tab="calendar">
+      <span class="tab-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>
+      <span>日历</span>
+    </button>
+    <button class="tab" data-tab="stats">
+      <span class="tab-ico"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M3 20h18"/></svg></span>
+      <span>统计</span>
+    </button>
+    <button class="tab" data-tab="me">
+      <span class="tab-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+      <span>我的</span>
+    </button>
+  </nav>
+
+  <div id="modalRoot"></div>
+  <div id="toast" class="toast"></div>
+  </div><!-- /app-wrap -->
+  <script src="app.js"></script>
+</body>
+</html>
