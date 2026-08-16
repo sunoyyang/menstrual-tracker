@@ -58,14 +58,27 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 /* ===== 滚动容器：html/body 不滚动，由 .app-wrap 统一承载 ===== */
-html, body { overflow: hidden; height: 100%; margin: 0; padding: 0; }
+/* iOS Safari 竖屏兼容：-webkit-fill-available 最准确，100dvh 在部分 iOS 版本会多算浏览器 UI 区域导致底部留白 */
+html {
+  overflow: hidden;
+  height: 100%;
+  height: -webkit-fill-available;
+}
+body {
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 .app-wrap {
   overflow-y: auto;
   overflow-x: hidden;
-  height: 100vh;
+  height: 100%;
+  height: -webkit-fill-available;
   height: 100dvh;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 100px;
+  /* padding-bottom = tabbar高度(62) + tabbar底部间距(18) + 内容与tabbar间距(20) + 安全区 */
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
 }
 
 /* 自定义滚动条 — 全部绑定到 .app-wrap（唯一滚动容器），!important 确保覆盖 */
