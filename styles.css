@@ -58,13 +58,20 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 /* ===== 滚动容器：html/body 不滚动，由 .app-wrap 统一承载 ===== */
-/* iOS PWA 独立模式(standalone) 兼容：
-   - position:fixed + inset:0 精确填满全屏（避免 100dvh 计算偏差导致底部留白）
-   - padding-top 躲避 black-translucent 状态栏覆盖区域
-   - padding-bottom 为悬浮 tabbar + Home Indicator 安全区留出空间 */
+/*
+ * iOS PWA 独立模式(standalone) 底部留白根因：
+ *   iOS 的 Home Indicator（底部横条）区域不在 inset:0 / 100dvh 的计算范围内，
+ *   导致 fixed 定位的容器比物理屏幕短一截，露出白底。
+ *
+ * 解决方案：
+ *   1. html/body 设为 -webkit-fill-available + 渐变背景作为终极兜底
+ *   2. .app-wrap 用 position:fixed 显式四边定位，min-height 强制超出视口
+ *   3. .aurora 光效层同样覆盖全屏（含安全区）
+ */
 html {
   overflow: hidden;
   height: 100%;
+  height: -webkit-fill-available;
   background: var(--canvas);
 }
 body {
@@ -76,13 +83,19 @@ body {
 }
 .app-wrap {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* 强制最小高度覆盖整个视口 + 安全区，防止 iOS Home Indicator 区域留白 */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* 顶部：iOS PWA standalone + black-translucent 时，状态栏覆盖内容，需安全区内边距 */
+  /* 顶部：iOS PWA standalone + black-translucent 时状态栏覆盖内容 */
   padding-top: env(safe-area-inset-top, 0px);
-  /* 底部 = tabbar高度(62) + tabbar底部间距(18) + 内容与tabbar间距(20) + 安全区 */
+  /* 底部 = tabbar高度(62) + tabbar间距(18) + 内容间距(20) + Home Indicator 安全区 */
   padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
 }
 
@@ -130,8 +143,8 @@ body {
   transition: background .4s ease, color .3s ease;
 }
 
-/* 沉静式光效层 */
-.aurora { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+/* 沉静式光效层 — 覆盖全屏含 Home Indicator 安全区 */
+.aurora { position: fixed; top: 0; left: 0; right: 0; bottom: 0; min-height: 100vh; min-height: -webkit-fill-available; overflow: hidden; z-index: 0; pointer-events: none; }
 .blob { position: absolute; border-radius: 50%; filter: blur(42px); opacity: var(--blob-op); transition: background .4s ease, opacity .2s ease; will-change: transform; }
 .b1 { width: 230px; height: 230px; background: var(--blob1); top: -40px; left: -50px; animation: drift1 16s ease-in-out infinite; }
 .b2 { width: 250px; height: 250px; background: var(--blob2); bottom: 60px; right: -70px; animation: drift2 20s ease-in-out infinite; }
