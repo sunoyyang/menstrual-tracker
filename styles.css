@@ -58,7 +58,10 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 /* ===== 滚动容器：html/body 不滚动，由 .app-wrap 统一承载 ===== */
-/* iOS PWA 独立模式(standalone) 兼容：fixed+inset 最可靠填满全屏，避免底部留白 */
+/* iOS PWA 独立模式(standalone) 兼容：
+   - position:fixed + inset:0 精确填满全屏（避免 100dvh 计算偏差导致底部留白）
+   - padding-top 躲避 black-translucent 状态栏覆盖区域
+   - padding-bottom 为悬浮 tabbar + Home Indicator 安全区留出空间 */
 html {
   overflow: hidden;
   height: 100%;
@@ -69,6 +72,7 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
+  background: var(--canvas);
 }
 .app-wrap {
   position: fixed;
@@ -76,7 +80,9 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* padding-bottom = tabbar高度(62) + tabbar底部间距(18) + 内容与tabbar间距(20) + 安全区 */
+  /* 顶部：iOS PWA standalone + black-translucent 时，状态栏覆盖内容，需安全区内边距 */
+  padding-top: env(safe-area-inset-top, 0px);
+  /* 底部 = tabbar高度(62) + tabbar底部间距(18) + 内容与tabbar间距(20) + 安全区 */
   padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
 }
 
