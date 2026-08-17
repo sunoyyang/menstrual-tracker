@@ -58,11 +58,11 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 /* ===== 滚动容器：html/body 不滚动，由 .app-wrap 统一承载 ===== */
-/* iOS Safari 竖屏兼容：-webkit-fill-available 最准确，100dvh 在部分 iOS 版本会多算浏览器 UI 区域导致底部留白 */
+/* iOS PWA 独立模式(standalone) 兼容：fixed+inset 最可靠填满全屏，避免底部留白 */
 html {
   overflow: hidden;
   height: 100%;
-  height: -webkit-fill-available;
+  background: var(--canvas);
 }
 body {
   overflow: hidden;
@@ -71,11 +71,10 @@ body {
   padding: 0;
 }
 .app-wrap {
+  position: fixed;
+  inset: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 100%;
-  height: -webkit-fill-available;
-  height: 100dvh;
   -webkit-overflow-scrolling: touch;
   /* padding-bottom = tabbar高度(62) + tabbar底部间距(18) + 内容与tabbar间距(20) + 安全区 */
   padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
