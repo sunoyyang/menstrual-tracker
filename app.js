@@ -360,6 +360,9 @@ function renderCalendar() {
   /* 收集「有过程记录（每日记录）」的日期，用于在日历上做标记 */
   const procSet = new Set();
   S.periods.forEach(p => { if (Array.isArray(p.daily)) p.daily.forEach(r => procSet.add(r.date)); });
+  /* 开始日 / 结束日集合，用于左上角统一徽章 */
+  const startSet = new Set(), endSet = new Set();
+  S.periods.forEach(p => { startSet.add(p.start); if (p.end) endSet.add(p.end); });
   let cells = '';
   for (let i = 0; i < startDow; i++) cells += `<div></div>`;
   for (let d = 1; d <= daysInMon; d++) {
@@ -372,11 +375,23 @@ function renderCalendar() {
     if (ds === t) cls += ' today';
     const hasIns = S.intimacy.some(r => r.date === ds);
     const hasProc = procSet.has(ds);
-    cells += `<div class="${cls}" data-action="day-open" data-date="${ds}">${d}${hasIns ? '<span class="dot"></span>' : ''}${hasProc ? '<span class="pdot" title="有过程记录"></span>' : ''}</div>`;
+    const isStart = startSet.has(ds);
+    const isEnd = endSet.has(ds);
+    let badges = '';
+    if (isStart && isEnd) badges += '<span class="se-badge start-end" title="经期起止日">起止</span>';
+    else if (isStart) badges += '<span class="se-badge start" title="经期开始">始</span>';
+    else if (isEnd) badges += '<span class="se-badge end" title="经期结束">止</span>';
+    if (hasProc) badges += '<span class="record-badge" title="有过程记录">记</span>';
+    if (hasIns) badges += '<span class="dot"></span>';
+    cells += `<div class="${cls}" data-action="day-open" data-date="${ds}">${d}${badges}</div>`;
   }
+  const ongoingPrompt = (lp && !lp.end)
+    ? `<div class="cal-prompt">当前经期自 ${fmtMD(lp.start)} 开始，尚未记录结束日。可在正确日期点「记经期」→「结束本次」。</div>`
+    : '';
   return `<div class="cal-head"><button data-action="cal-prev">‹</button><div class="m">${y}年${m + 1}月</div><button data-action="cal-next">›</button></div>
    <div class="cal-grid"><div class="cal-dow">一</div><div class="cal-dow">二</div><div class="cal-dow">三</div><div class="cal-dow">四</div><div class="cal-dow">五</div><div class="cal-dow">六</div><div class="cal-dow">日</div>${cells}</div>
-   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i style="background:var(--pink-deep);border-radius:50%;width:8px;height:8px"></i>亲密</span><span><i style="background:#fff;box-shadow:0 0 0 1.5px rgba(236,106,152,.6);border-radius:50%;width:8px;height:8px"></i>过程记录</span></div>`;
+   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i style="background:var(--pink-deep);border-radius:50%;width:8px;height:8px"></i>亲密</span><span><i class="legend-record">记</i>过程记录</span><span><i class="legend-start">始</i>经期开始</span><span><i class="legend-end">止</i>经期结束</span></div>
+   ${ongoingPrompt}`;
 }
 
 function renderStats() {

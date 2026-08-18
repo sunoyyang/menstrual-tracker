@@ -314,9 +314,46 @@ body {
 /* 过程记录小点 — 右上角白色细环，与亲密点区分，提示「当日有每日记录」 */
 .day .pdot { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 4px rgba(0,0,0,.25); }
 .day.period .pdot, .day.fertile .pdot, .day.ovu .pdot, .day.period-pred .pdot { background: #fff; }
+/* 经期开始 / 结束 统一徽章（左上角） */
+.day .se-badge, .day .record-badge {
+  position: absolute;
+  top: 3px;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 5px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.day .se-badge { left: 3px; }
+.day .se-badge.start { background: #fff; color: var(--pink-deep); }
+.day .se-badge.end { background: var(--pink-deep); color: #fff; }
+.day .se-badge.start-end { background: #fff; color: var(--pink-deep); border: 1px solid var(--pink-deep); }
+/* 过程记录徽章（右上角），比原先小白点更醒目 */
+.day .record-badge {
+  right: 3px;
+  background: #fff;
+  color: var(--purple);
+  border: 1px solid var(--purple);
+}
 .day.today { outline: 2px solid var(--pink-deep); outline-offset: -2px; }
+/* 日历底部未结束经期提示 */
+.cal-prompt {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(236, 106, 152, 0.12);
+  border: 1px solid rgba(236, 106, 152, 0.22);
+  color: var(--pink-deep);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 10px; }
-.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; }
+.legend i { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; font-style: normal; font-size: 9px; font-weight: 700; }
+.legend i.legend-record { background: #fff; color: var(--purple); border: 1px solid var(--purple); }
+.legend i.legend-start { background: #fff; color: var(--pink-deep); }
+.legend i.legend-end { background: var(--pink-deep); color: #fff; }
 
 /* lists */
 .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
