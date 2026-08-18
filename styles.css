@@ -538,6 +538,30 @@ body {
 /* 今天页 — 健康记录板块 */
 .health h3 { margin: 0; font-size: 14px; color: var(--ink-2); font-weight: 600; }
 .h-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.h-section { margin-top: 14px; }
+.h-section:first-of-type { margin-top: 0; }
+.h-section-title {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px;
+}
+.h-section-sub { font-size: 11px; color: var(--ink-2); font-weight: 400; }
+.h-totals {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+}
+.h-total {
+  background: var(--surface-2); border-radius: 12px; padding: 10px 4px;
+  text-align: center; border: 1px solid transparent;
+}
+.h-total-n { font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.h-total-l { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
+.h-total.warn { background: rgba(244, 143, 177, 0.12); border-color: rgba(244, 143, 177, 0.25); }
+.h-total.warn .h-total-n { color: var(--pink-deep); }
+.h-total.good { background: rgba(120, 200, 140, 0.12); border-color: rgba(120, 200, 140, 0.25); }
+.h-total.good .h-total-n { color: #3a9d5a; }
+.h-advice-group { margin-bottom: 12px; }
+.h-advice-group-title {
+  font-size: 12px; color: var(--ink-2); margin-bottom: 8px; font-weight: 500;
+}
 .h-close { font-size: 12px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--glass-border); cursor: pointer; padding: 6px 14px; border-radius: 999px; font-weight: 500; transition: background .15s ease, transform .1s ease; }
 .h-close:active { transform: scale(.96); background: var(--surface-2); filter: brightness(.95); }
 .h-rows { display: flex; flex-direction: column; gap: 10px; }
