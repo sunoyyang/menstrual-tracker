@@ -515,6 +515,7 @@ function openPeriodModal(prefill, editId) {
   const defaultType = editing ? 'start' : (active ? 'daily' : 'start');
   const dayHint = (!editing && active) ? `<div class="day-hint" id="pDayHint">本轮经期第 <strong>${diffDays(active.start, d) + 1}</strong> 天（从 ${fmtMD(active.start)} 起算）</div>` : '';
   const title = editing ? '修改经期' : '记录经期';
+  const initDateLabel = editing ? '开始日期' : (defaultType === 'end' ? '结束日期' : (defaultType === 'daily' ? '过程中日期' : '开始日期'));
   let typeSeg;
   if (editing) {
     typeSeg = `<div class="seg" id="pType"><div class="chip on" data-v="start">修改开始日</div></div>`;
@@ -532,7 +533,7 @@ function openPeriodModal(prefill, editId) {
   modal(`<h2>${title}</h2>
    <div class="field"><label>类型</label>${typeSeg}</div>
    ${note}
-   <div class="field date-field" id="pDateWrap"><label id="pDateLabel">开始日期</label><input type="date" id="pDate" value="${d}"></div>
+   <div class="field date-field" id="pDateWrap"><label id="pDateLabel">${initDateLabel}</label><input type="date" id="pDate" value="${d}"></div>
    ${dayHint}
    <div class="field" id="pFlowWrap"><label>经量</label><div class="chips" id="pFlow">
      ${flowOpts.map(f => `<div class="chip${flowOn(f)}" data-v="${f}">${f}</div>`).join('')}</div></div>
@@ -559,7 +560,10 @@ function openPeriodModal(prefill, editId) {
       const isDaily = t === 'daily';
       /* 结束本次：显示结束日期（默认取弹出时的日期），隐藏经量 */
       document.getElementById('pDateWrap').style.display = '';
-      document.getElementById('pDateLabel').textContent = isEnd ? '结束日期' : '开始日期';
+      let dateLabel = '开始日期';
+      if (isEnd) dateLabel = '结束日期';
+      else if (isDaily) dateLabel = '过程中日期';
+      document.getElementById('pDateLabel').textContent = dateLabel;
       document.getElementById('pFlowWrap').style.display = isEnd ? 'none' : '';
       const hint = document.getElementById('pDayHint');
       if (hint) hint.style.display = isDaily ? '' : 'none';
