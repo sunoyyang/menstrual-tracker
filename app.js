@@ -444,9 +444,10 @@ function openPeriodModal(prefill, editId) {
       [...e.currentTarget.children].forEach(x => x.classList.remove('on')); c.classList.add('on');
       const isEnd = t === 'end';
       const isDaily = t === 'daily';
-      document.getElementById('pDateWrap').style.display = isEnd ? 'none' : '';
+      /* 结束本次：显示结束日期（默认取弹出时的日期），隐藏经量 */
+      document.getElementById('pDateWrap').style.display = '';
+      document.getElementById('pDateLabel').textContent = isEnd ? '结束日期' : '开始日期';
       document.getElementById('pFlowWrap').style.display = isEnd ? 'none' : '';
-      document.getElementById('pDateLabel').textContent = '开始日期';
       const hint = document.getElementById('pDayHint');
       if (hint) hint.style.display = isDaily ? '' : 'none';
     });
@@ -458,15 +459,26 @@ function openPeriodModal(prefill, editId) {
 function savePeriod() {
   const type = document.querySelector('#pType .chip.on').dataset.v;
   if (type === 'end') {
-    const open = [...S.periods].reverse().find(p => !p.end);
-    if (!open) { toast('没有进行中的经期'); return; }
-    open.end = todayKey();
-    save(); closeModal(); render(); toast('已记录经期结束');
+    const end = document.getElementById('pDate').value;
+    if (!end) { toast('请选择结束日期'); return; }
+    /* 优先进行中的经期；否则取最近一条（用于修正已结束但记错结束日的经期） */
+    let target = [...S.periods].reverse().find(p => !p.end);
+    if (!target) target = [...S.periods].reverse()[0];
+    if (!target) { toast('还没有经期记录，请先记录「开始」'); return; }
+    if (end < target.start) { toast('结束日不能早于开始日（' + fmtMD(target.start) + '）'); return; }
+    /* 不能晚于下一段经期的开始日，避免两段重叠 */
+    const next = S.periods.find(x => x.start > target.start);
+    if (next && end >= next.start) { toast('结束日不能晚于下一段经期开始日（' + fmtMD(next.start) + '）'); return; }
+    target.end = end;
+    /* 若新的结束日早于原结束日，移除超出范围的每日过程记录，保持数据一致 */
+    if (Array.isArray(target.daily)) target.daily = target.daily.filter(r => r.date <= end);
+    save(); closeModal(); render(); toast('已记录经期结束（' + fmtMD(end) + '）');
     return;
   }
   if (type === 'daily') {
-    const active = [...S.periods].reverse().find(p => !p.end);
-    if (!active) { toast('没有进行中的经期，请先记录「开始」'); return; }
+    /* 进行中经期优先；否则取最近一条（支持给已结束经期补过程记录） */
+    const active = [...S.periods].reverse().find(p => !p.end) || [...S.periods].reverse()[0];
+    if (!active) { toast('没有经期记录，请先记录「开始」'); return; }
     const date = document.getElementById('pDate').value;
     if (!date) { toast('请选择日期'); return; }
     /* 日期必须在经期范围内 */
@@ -638,9 +650,10 @@ function openDaySheet(dateStr) {
     html += `<div class="actions"><button class="btn" data-action="edit-period" data-date="${dateStr}" data-id="${editTarget.id}">✏️ 修改本段经期</button>`;
     if (endedP) {
       html += `<button class="btn" data-action="edit-period-end" data-id="${endedP.id}">✏️ 修改结束日</button>`;
+      html += `<button class="btn" data-action="clear-end" data-id="${endedP.id}">↩️ 清除结束日</button>`;
     }
     html += `</div>`;
-    html += `<div class="actions"><button class="btn danger" data-action="delete-period" data-id="${editTarget.id}">删除这条经期记录</button></div>`;
+    html += `<div class="actions"><button class="btn danger" data-action="delete-period" data-id="${editTarget.id}">🗑 删除这条经期记录</button></div>`;
   }
   html += `<div class="actions"><button class="btn ghost" data-action="close-modal">关闭</button></div>`;
   modal(html);
@@ -679,6 +692,15 @@ function saveEndEdit(id) {
   save(); closeModal(); render(); toast('已修改结束日为 ' + fmtMD(d));
 }
 
+/* 清除已结束经期的结束日，使其恢复为「进行中」（便于在正确日期重新结束本次） */
+function clearEnd(id) {
+  const p = S.periods.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm('清除这条经期的结束日吗？\n清除后该经期会恢复为「进行中」，你可以在正确的日期再点「结束本次」。')) return;
+  p.end = null;
+  save(); closeModal(); render(); toast('已清除结束日，经期恢复进行中');
+}
+
 /* ---------- 动作分发 ---------- */
 function doAction(a, el) {
   switch (a) {
@@ -690,6 +712,7 @@ function doAction(a, el) {
     case 'save-period': savePeriod(); break;
     case 'save-intimacy': saveIntimacy(); break;
     case 'delete-period': deletePeriod(el.dataset.id); break;
+    case 'clear-end': clearEnd(el.dataset.id); break;
     case 'day-open': openDaySheet(el.dataset.date); break;
     case 'cal-prev': calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); render(); break;
     case 'cal-next': calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); render(); break;
