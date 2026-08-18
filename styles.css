@@ -364,6 +364,8 @@ body {
   border: 1px solid var(--glass-border); border-radius: 14px;
   box-shadow: 0 16px 48px rgba(0,0,0,.22), 0 4px 16px rgba(0,0,0,.10);
   padding: 5px; z-index: 60; opacity: 0; visibility: hidden;
+  list-style: none;
+  margin: 0;
   transform: translateY(-8px) scale(.97);
   transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
 }
