@@ -749,6 +749,9 @@ function savePeriod() {
     const date = document.getElementById('pDate').value;
     if (!date) { toast('请选择日期'); return; }
     if (S.periods.some(p => p.id !== editingPeriodId && p.start === date)) { toast('该日已有其它经期记录'); return; }
+    const overlap = S.periods.find(p => p.id !== editingPeriodId && date >= p.start && date <= (p.end || date));
+    if (overlap) { toast('该日期在其它经期（' + fmtMD(overlap.start) + (overlap.end ? ' ~ ' + fmtMD(overlap.end) : '') + '）范围内'); return; }
+    if (ep.end && date > ep.end) { toast('开始日不能晚于结束日'); return; }
     const flow = getChips('#pFlow')[0] || '中';
     const sym = getChips('#pSym');
     const mood = getChips('#pMood')[0] || '';
@@ -774,6 +777,8 @@ function savePeriod() {
   const abn = document.getElementById('pAbn').value.trim();
   const note = document.getElementById('pNote').value.trim();
   if (S.periods.some(p => p.start === date)) { toast('该日已有经期记录'); return; }
+  const overlap = S.periods.find(p => date >= p.start && date <= (p.end || date));
+  if (overlap) { toast('该日期在已有经期（' + fmtMD(overlap.start) + (overlap.end ? ' ~ ' + fmtMD(overlap.end) : '') + '）范围内，不能重复开始'); return; }
   S.periods.push({ id: uid(), start: date, end: null, flow, symptoms: sym, abnormal: abn, mood, note, daily: [] });
   save(); closeModal(); render(); toast('已保存');
 }
