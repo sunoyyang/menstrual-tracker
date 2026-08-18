@@ -242,13 +242,17 @@ function renderHealth() {
       tips.map(t => `<div class="h-tip ${t.lv}"><div class="h-tip-t">${t.t}</div><div class="h-tip-d">${t.d}</div></div>`).join('') +
       `<div class="h-src">数据来源：Cochrane 2019 / ACOG / 科普中国 / 中华医学会 / 《中华妇产科学》。仅供参考，非医学诊断。</div></div>`;
   }
-  return `<div class="card health"><h3>经期健康记录</h3><div class="h-rows">${rows}</div>${statsHtml}${adviceHtml}</div>`;
+  return `<div class="card health">
+    <div class="h-header"><h3>经期健康记录</h3><button class="h-close" data-action="toggle-health">收起</button></div>
+    <div class="h-rows">${rows}</div>${statsHtml}${adviceHtml}
+  </div>`;
 }
 
 /* ---------- 渲染 ---------- */
 let currentTab = 'today';
 let calMonth = new Date();
 let currentLocked = false;
+let healthExpanded = false;
 
 /* 展示某天的过程记录卡片（今天页用） */
 function buildDailyCard(p, t) {
@@ -326,7 +330,10 @@ function renderToday() {
     }
   }
   const last = sortedPeriods().slice(-1)[0];
-  const mini = last ? `上次经期：${fmtMD(last.start)}` : '还没有经期记录，点下方按钮开始';
+  const mini = last ? `上次经期：${fmtMD(last.start)}` : '';
+  const healthHtml = healthExpanded
+    ? renderHealth()
+    : `<div class="btn-row"><button class="btn" data-action="toggle-health">健康打卡</button></div>`;
   return `<div class="card status">
       <div class="phase">${phase}</div>
       ${countHtml}
@@ -336,8 +343,8 @@ function renderToday() {
     <div class="btn-row">
       <button class="btn" data-action="open-period">记经期</button>
     </div>
-    <div class="mini">${mini}</div>
-    ${renderHealth()}`;
+    ${healthHtml}
+    ${mini ? `<div class="mini">${mini}</div>` : ''}`;
 }
 
 function renderCalendar() {
@@ -805,6 +812,7 @@ function doAction(a, el) {
     case 'habit-inc': bumpHabit(el.dataset.k, +(el.dataset.step || 1)); break;
     case 'habit-dec': bumpHabit(el.dataset.k, -(+(el.dataset.step || 1))); break;
     case 'habit-toggle': toggleHabit(el.dataset.k); break;
+    case 'toggle-health': healthExpanded = !healthExpanded; render(); break;
     case 'delete-period': deletePeriod(el.dataset.id); break;
     case 'clear-end': clearEnd(el.dataset.id); break;
     case 'day-open': openDaySheet(el.dataset.date); break;
