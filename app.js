@@ -401,9 +401,14 @@ function renderToday() {
       sub = `${endMsg} · 当前第 ${d} 天`;
       dailyHtml = buildDailyCard(p, t);
     }
-    /* 已记录天数提示（进行中或结束当天都显示） */
-    if (Array.isArray(p.daily) && p.daily.length) {
-      sub += ` <small class="daily-badge">已记录 ${p.daily.length}/${d} 天</small>`;
+    /* 已记录天数提示：开始日、结束日、过程记录日均算有记录 */
+    const spanEnd = p.end || t;
+    const recDates = new Set([p.start]);
+    if (p.end) recDates.add(p.end);
+    (p.daily || []).forEach(r => { if (r.date >= p.start && r.date <= spanEnd) recDates.add(r.date); });
+    const recordedCount = recDates.size;
+    if (recordedCount > 0) {
+      sub += ` <small class="daily-badge">已记录 ${recordedCount}/${d} 天</small>`;
     }
   } else {
     const lp = latestPeriod();
