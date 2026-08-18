@@ -207,26 +207,64 @@ function periodHasCramp(p) {
   if (Array.isArray(p.daily)) return p.daily.some(d => d.symptoms && d.symptoms.includes('腹痛'));
   return false;
 }
-/* 权威知识库（来源见每条文案） */
-function healthAdvice(stats, p) {
+/* 权威知识库 + 实时分析（来源见文案） */
+function healthAdvice(stats, p, h) {
   const tips = [];
   const cramp = periodHasCramp(p);
-  if (stats.icedTea >= 3) tips.push({ lv: 'warn', t: '冰奶茶偏多（' + stats.icedTea + ' 杯）', d: '生冷 + 咖啡因叠加易加重痛经，经期建议减量。来源：ACOG / 科普中国 / 中华医学会' });
-  else if (stats.icedTea >= 2) tips.push({ lv: 'warn', t: '冰奶茶偏多（' + stats.icedTea + ' 杯）', d: '含咖啡因与生冷刺激，敏感人群可能加重不适，建议少喝。' });
-  if (stats.hotTea >= 3) tips.push({ lv: 'warn', t: '热奶茶偏多（' + stats.hotTea + ' 杯）', d: '咖啡因升高前列腺素、高糖致血糖波动，仍可能加剧痛经。' });
-  if (stats.spicy >= 3) tips.push({ lv: 'warn', t: '吃辣偏多（' + stats.spicy + ' 份）', d: '辛辣促进前列腺素分泌→子宫痉挛、并刺激胃肠。来源：《中华妇产科学》/ 科普中国' });
-  if (cramp && (stats.icedTea >= 2 || stats.spicy >= 3)) tips.push({ lv: 'info', t: '痛经关联提醒', d: '本期有腹痛/痛经，且冰饮/辣频次偏高，可能与这些习惯相关，经期可尝试减少。非诊断、仅供参考。' });
-  if (stats.exDays >= 3) tips.push({ lv: 'good', t: '运动达标（' + stats.exDays + ' 天）', d: '每周≥3 次、每次 45–60 分钟运动可显著降低经期疼痛（Cochrane 2019 系统综述）。继续坚持！' });
-  else if (stats.exDays > 0) tips.push({ lv: 'info', t: '运动偏少（' + stats.exDays + ' 天）', d: 'Cochrane 2019 显示规律运动（瑜伽/步行/拉伸）可降痛经约 25%，建议经期做温和运动。' });
-  else tips.push({ lv: 'info', t: '本期尚未记录运动', d: '适度温和运动（如散步、瑜伽）有助于缓解经期不适。' });
-  return tips;
+  const totalCaffeine = (stats.icedTea || 0) + (stats.hotTea || 0);
+  const todayCaffeine = (h.icedTea || 0) + (h.hotTea || 0);
+
+  /* 今日即时提醒 */
+  if (h.icedTea > 0) tips.push({ lv: 'warn', t: '今日冰奶茶提醒', d: `今天已记录 ${h.icedTea} 杯冰奶茶。生冷 + 咖啡因叠加，敏感人群容易出现小腹坠胀、腹泻或痛经加重。`, sym: '小腹坠胀、腹泻、痛经加重' });
+  if (h.spicy > 0) tips.push({ lv: 'warn', t: '今日吃辣提醒', d: `今天已记录 ${h.spicy} 份辣。辛辣促进前列腺素分泌，可能刺激子宫痉挛和肠胃。`, sym: '子宫痉挛痛、胃灼热、腹泻' });
+  if (h.hotTea > 0) tips.push({ lv: 'info', t: '今日热奶茶提醒', d: `今天已记录 ${h.hotTea} 杯热奶茶。咖啡因 + 高糖可能导致入睡困难、情绪波动。`, sym: '失眠、烦躁、乳房胀痛' });
+
+  /* 本期累计分析 */
+  if (stats.icedTea >= 3) tips.push({ lv: 'warn', t: '本期冰奶茶摄入偏高', d: `本经期已喝 ${stats.icedTea} 杯冰奶茶，处于较高水平，建议明显减少。`, sym: '小腹冷痛、腹泻、痛经加重' });
+  else if (stats.icedTea >= 2) tips.push({ lv: 'warn', t: '本期冰奶茶偏多', d: `本经期已喝 ${stats.icedTea} 杯冰奶茶，敏感体质建议减量。`, sym: '小腹不适、痛经' });
+
+  if (stats.hotTea >= 3) tips.push({ lv: 'warn', t: '本期热奶茶摄入偏高', d: `本经期已喝 ${stats.hotTea} 杯热奶茶。咖啡因与糖分较高，可能影响睡眠与情绪。`, sym: '失眠、情绪波动、乳房胀痛' });
+
+  if (stats.spicy >= 3) tips.push({ lv: 'warn', t: '本期吃辣偏多', d: `本经期已吃 ${stats.spicy} 份辣。辛辣促进盆腔充血和前列腺素分泌。`, sym: '子宫痉挛痛、胃痛、腹泻' });
+
+  /* 咖啡因总量 */
+  if (totalCaffeine >= 5) tips.push({ lv: 'warn', t: '本期咖啡因摄入较高', d: `热/冰奶茶合计 ${totalCaffeine} 杯，咖啡因总量较高，易影响睡眠和加重焦虑。`, sym: '失眠、心悸、烦躁' });
+
+  /* 组合风险 */
+  if (h.icedTea > 0 && h.spicy > 0) tips.push({ lv: 'warn', t: '今日双重刺激', d: '冰奶茶 + 辣同时摄入，生冷与辛辣叠加，是经期不适的高风险组合。建议今晚喝温水、避免再进食生冷辛辣。', sym: '腹痛、腹泻、痛经加重' });
+  if (stats.icedTea >= 2 && stats.spicy >= 3) tips.push({ lv: 'warn', t: '本期高风险组合', d: '冰奶茶和辣都偏多，容易加重经期炎症反应和子宫痉挛，建议后续几天清淡饮食。', sym: '严重痛经、腹泻、肠胃不适' });
+
+  /* 痛经关联 */
+  if (cramp && (stats.icedTea >= 1 || stats.spicy >= 2)) tips.push({ lv: 'info', t: '痛经关联提醒', d: '本期已记录腹痛/痛经，且摄入了冰饮或辣，可能与这些习惯相关，可尝试减少观察是否缓解。', sym: '小腹绞痛、腰酸' });
+
+  /* 运动 */
+  if (h.exercised && (h.exerciseMin || 0) > 0) {
+    const min = h.exerciseMin;
+    if (min >= 45 && min <= 90) tips.push({ lv: 'good', t: '今日运动适量', d: `已记录 ${min} 分钟运动，这个时长对缓解经期不适比较理想。`, sym: '' });
+    else if (min > 90) tips.push({ lv: 'info', t: '今日运动偏长', d: `已记录 ${min} 分钟运动，经期不建议过度疲劳，注意补充水分和休息。`, sym: '疲劳、经量增多' });
+    else tips.push({ lv: 'good', t: '今日已运动', d: `已记录 ${min} 分钟运动，适度活动有助于缓解经期不适。`, sym: '' });
+  } else if (stats.exDays >= 3) {
+    tips.push({ lv: 'good', t: '本期运动达标', d: `本经期已运动 ${stats.exDays} 天（共 ${stats.exMin} 分钟）。规律运动可显著降低经期疼痛（Cochrane 2019 系统综述）。`, sym: '' });
+  } else if (stats.exDays > 0) {
+    tips.push({ lv: 'info', t: '本期运动偏少', d: `本经期仅运动 ${stats.exDays} 天。建议再安排 1–2 次温和运动（散步、瑜伽、拉伸）。`, sym: '小腹坠胀、情绪低落' });
+  } else {
+    tips.push({ lv: 'info', t: '本期尚未记录运动', d: '适度运动（散步、瑜伽、拉伸）可促进血液循环，帮助缓解痛经和腹胀。', sym: '淤血腹胀、情绪低落' });
+  }
+
+  /* 久坐/无运动 + 饮食刺激 */
+  if (stats.exDays === 0 && (stats.icedTea > 0 || stats.spicy > 0)) {
+    tips.push({ lv: 'warn', t: '刺激饮食且缺乏运动', d: '经期吃了生冷辛辣食物但又没有记录运动，容易加重淤血和不适。建议饭后散步 15–20 分钟。', sym: '腹胀、便秘、痛经' });
+  }
+
+  const rank = { warn: 0, info: 1, good: 2 };
+  return tips.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 5);
 }
 function renderHealth() {
   const t = todayKey();
   const h = S.habits.find(x => x.date === t) || { date: t, spicy: 0, hotTea: 0, icedTea: 0, exercised: false, exerciseMin: 0 };
   const p = periodAt(t) || latestPeriod();
   const stats = p ? periodHabitStats(p) : null;
-  const tips = stats ? healthAdvice(stats, p) : [];
+  const tips = stats ? healthAdvice(stats, p, h) : [];
   const step = (k, unit, val) => {
     const display = k === 'exerciseMin'
       ? `<input type="number" class="h-input" inputmode="numeric" min="0" max="300" value="${val}" data-action="habit-set" data-k="${k}"><span class="h-unit">${unit}</span>`
@@ -239,26 +277,21 @@ function renderHealth() {
   rows += `<div class="h-row"><div class="h-name">吃辣</div>${step('spicy', '份', h.spicy)}</div>`;
   rows += `<div class="h-row"><div class="h-name">热奶茶</div>${step('hotTea', '杯', h.hotTea)}</div>`;
   rows += `<div class="h-row"><div class="h-name">冰奶茶</div>${step('icedTea', '杯', h.icedTea)}</div>`;
-  let statsHtml = '';
-  if (stats) {
-    statsHtml = `<div class="h-stats">
-      <span class="h-chip">辣 ${stats.spicy} 份</span>
-      <span class="h-chip${stats.icedTea >= 2 ? ' warn' : ''}">冰奶茶 ${stats.icedTea} 杯</span>
-      <span class="h-chip">热奶茶 ${stats.hotTea} 杯</span>
-      <span class="h-chip${stats.exDays >= 3 ? ' good' : ''}">运动 ${stats.exDays} 天</span>
-    </div>`;
-  }
+
   let adviceHtml = '';
   if (!stats) {
-    adviceHtml = `<div class="h-advice"><div class="h-tip info"><div class="h-tip-t">记录经期后展示统计</div><div class="h-tip-d">打卡数据已保存；记录经期后，这里会自动汇总本期吃辣 / 奶茶 / 运动并给出健康建议。</div></div></div>`;
+    adviceHtml = `<div class="h-advice"><div class="h-tip info"><div class="h-tip-t">记录经期后展示分析</div><div class="h-tip-d">打卡数据已保存；记录经期后，这里会实时汇总本期饮食与运动，并给出健康建议与不适风险提示。</div></div></div>`;
   } else if (tips.length) {
-    adviceHtml = `<div class="h-advice"><div class="h-advice-title">健康建议</div>` +
+    const syms = [...new Set(tips.filter(t => t.sym).flatMap(t => t.sym.split('、')))];
+    const symHtml = syms.length ? `<div class="h-sym"><div class="h-sym-title">可能出现的不适</div><div class="h-sym-list">${syms.join(' · ')}</div><div class="h-sym-note">以上为基于记录的习惯推测，个体差异大，如有严重不适请及时就医。</div></div>` : '';
+    adviceHtml = `<div class="h-advice"><div class="h-advice-title">实时健康分析 · 基于本期 ${stats.days} 天记录</div>` +
       tips.map(t => `<div class="h-tip ${t.lv}"><div class="h-tip-t">${t.t}</div><div class="h-tip-d">${t.d}</div></div>`).join('') +
+      symHtml +
       `<div class="h-src">数据来源：Cochrane 2019 / ACOG / 科普中国 / 中华医学会 / 《中华妇产科学》。仅供参考，非医学诊断。</div></div>`;
   }
   return `<div class="card health">
     <div class="h-header"><h3>经期健康记录</h3><button class="h-close" data-action="toggle-health">收起</button></div>
-    <div class="h-rows">${rows}</div>${statsHtml}${adviceHtml}
+    <div class="h-rows">${rows}</div>${adviceHtml}
   </div>`;
 }
 
