@@ -95,7 +95,9 @@ function periodEndEst(p) {
 function periodSpan(p) {
   const start = p.start;
   let end = p.end || p.start;
-  if (!p.end) { const est = periodEndEst(p); const td = todayKey(); end = td > est ? est : td; }
+  /* 未结束经期：实际跨度应「延展到今天」；若今天还在推定区间内，则显示到推定结束日。
+     原三目分支写反，导致今天超出推定结束日后反而被裁掉，当天打卡无法计入累计/建议。 */
+  if (!p.end) { const est = periodEndEst(p); const td = todayKey(); end = td > est ? td : est; }
   return [start, end];
 }
 /* 某天落在哪个经期（含进行中延展），返回该 period 或 null
