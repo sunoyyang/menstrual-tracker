@@ -142,7 +142,6 @@ body {
   color: var(--ink);
   font-size: 15px;
   line-height: 1.6;
-}
   -webkit-font-smoothing: antialiased;
   transition: background .4s ease, color .3s ease;
 }
@@ -546,14 +545,18 @@ body {
 }
 .h-section-sub { font-size: 11px; color: var(--ink-2); font-weight: 400; }
 .h-totals {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+  width: 100%;
 }
 .h-total {
-  background: var(--surface-2); border-radius: 12px; padding: 10px 4px;
+  background: var(--surface-2); border-radius: 12px; padding: 10px 2px;
   text-align: center; border: 1px solid transparent;
+  /* iOS Safari：grid/flex 子项默认 min-width:auto 会导致列溢出被裁切，显式归零 */
+  min-width: 0; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.h-total-n { font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1.2; }
-.h-total-l { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
+.h-total-n { font-size: 17px; font-weight: 700; color: var(--ink); line-height: 1.2; min-width: 0; }
+.h-total-l { font-size: 10px; color: var(--ink-2); margin-top: 4px; line-height: 1.25; word-break: keep-all; overflow-wrap: break-word; }
 .h-total.warn { background: rgba(244, 143, 177, 0.12); border-color: rgba(244, 143, 177, 0.25); }
 .h-total.warn .h-total-n { color: var(--pink-deep); }
 .h-total.good { background: rgba(120, 200, 140, 0.12); border-color: rgba(120, 200, 140, 0.25); }
@@ -609,3 +612,11 @@ body {
 .h-sym-list { font-size: 12px; color: var(--ink); margin-top: 4px; line-height: 1.5; }
 .h-sym-note { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.5; }
 .h-src { font-size: 11px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; opacity: .85; }
+
+/* 小屏（iPhone SE 等）适配：进一步压缩累计卡片，确保 5 列不被裁切 */
+@media (max-width: 360px) {
+  .h-total { padding: 8px 1px; }
+  .h-total-n { font-size: 15px; }
+  .h-total-l { font-size: 9px; }
+  .h-totals { gap: 4px; }
+}

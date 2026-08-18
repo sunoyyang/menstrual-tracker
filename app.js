@@ -280,7 +280,7 @@ function healthAdvice(stats, p, h) {
 
   const rank = { warn: 0, info: 1, good: 2 };
   const all = [...today, ...stage, ...next, ...risk];
-  const syms = [...new Set(all.filter(t => t.sym).flatMap(t => t.sym.split('、')))].slice(0, 12);
+  const syms = [...new Set(all.filter(t => t.sym).reduce((a, t) => a.concat(t.sym.split('、')), []))].slice(0, 12);
   return {
     today: today.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 3),
     stage: stage.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 4),
