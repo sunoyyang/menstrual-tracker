@@ -467,6 +467,18 @@ function renderMe() {
     <div class="actions"><button class="btn" data-action="export">导出备份(JSON)</button><button class="btn" data-action="import">导入</button></div>
     <div class="actions"><button class="btn ghost" data-action="clear-data">清空所有数据</button></div>
   </div>
+  <div class="card about-card">
+    <h3>关于本 Web 应用</h3>
+    <div class="about-dev">
+      <div class="about-avatar"><img src="https://avatars.githubusercontent.com/u/149399680?v=4" alt="开发者头像" onerror="this.replaceWith(document.createTextNode('🌸'))"></div>
+      <div class="about-info">
+        <div class="about-name">YangZK</div>
+        <div class="about-login">@sunoyyang</div>
+        <a class="about-link" href="https://github.com/sunoyyang" target="_blank" rel="noopener">前往 GitHub 主页 ↗</a>
+      </div>
+    </div>
+    <div class="about-desc">经期小记 · 一款纯净私密的本地经期记录工具，数据仅保存在你的本机浏览器，不上传任何服务器。</div>
+  </div>
   <div class="me-foot">经期小记 v0.2 · 所有预测均为参考值，如有健康疑问请咨询医生。</div>`;
 }
 

@@ -216,6 +216,17 @@ body {
 
 .me-foot { text-align: center; font-size: 11px; color: var(--ink-2); margin: 6px 0 8px; padding: 0 16px; line-height: 1.6; }
 
+/* 「我的」页 — 关于本 Web 应用 */
+.about-dev { display: flex; align-items: center; gap: 12px; }
+.about-avatar { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--glass-border); font-size: 26px; flex-shrink: 0; }
+.about-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.about-info { display: flex; flex-direction: column; gap: 2px; }
+.about-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+.about-login { font-size: 12px; color: var(--ink-2); }
+.about-link { font-size: 12px; color: var(--pink-deep); text-decoration: none; margin-top: 3px; }
+.about-link:active { opacity: .7; }
+.about-desc { font-size: 12px; color: var(--ink-2); line-height: 1.6; margin-top: 12px; }
+
 /* 光效强度滑块 */
 .slider-field { margin-bottom: 0; }
 .slider-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
@@ -527,8 +538,8 @@ body {
 /* 今天页 — 健康记录板块 */
 .health h3 { margin: 0; font-size: 14px; color: var(--ink-2); font-weight: 600; }
 .h-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.h-close { font-size: 12px; color: var(--ink-2); background: transparent; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
-.h-close:active { background: var(--surface-2); }
+.h-close { font-size: 12px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--glass-border); cursor: pointer; padding: 6px 14px; border-radius: 999px; font-weight: 500; transition: background .15s ease, transform .1s ease; }
+.h-close:active { transform: scale(.96); background: var(--surface-2); filter: brightness(.95); }
 .h-rows { display: flex; flex-direction: column; gap: 10px; }
 .h-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .h-name { font-size: 14px; color: var(--ink); }
