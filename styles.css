@@ -342,8 +342,13 @@ body {
   margin: 0;
 }
 .field input[type="hidden"] { display: none; }
-/* 日期选择器：选中值与整体视觉居中对齐 */
-.field input[type="date"] { text-align: center; }
+/* 日期选择器：去掉原生外观，使框的长/宽与「选填」文本框一致，值居中 */
+.field input[type="date"] {
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
 .field textarea { resize: vertical; min-height: 64px; }
 
 /* 自定义下拉框 — 玻璃风格 */
