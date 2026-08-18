@@ -384,14 +384,14 @@ body {
 }
 
 /* modal — 毛玻璃 */
-.modal-mask { position: fixed; inset: 0; background: rgba(60,40,45,.35); display: flex; align-items: flex-end; z-index: 50; }
+.modal-mask { position: fixed; inset: 0; background: rgba(60,40,45,.35); display: flex; align-items: flex-end; z-index: 50; touch-action: pan-y; }
 .modal {
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(24px) saturate(170%);
   backdrop-filter: blur(24px) saturate(170%);
   border: 1px solid var(--glass-border);
   width: 100%; max-width: 560px; margin: 0 auto; border-radius: 20px 20px 0 0;
-  padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto; touch-action: pan-y;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y;
   animation: up .22s ease; box-shadow: var(--glass-shadow);
   transition: background .3s ease, border-color .3s ease;
 }
