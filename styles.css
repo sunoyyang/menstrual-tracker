@@ -241,7 +241,7 @@ body {
 .status .count { font-size: 40px; font-weight: 700; margin: 8px 0; }
 .status .count small { font-size: 14px; font-weight: 400; color: var(--ink-2); }
 
-.btn-row { display: flex; gap: 12px; margin-top: 6px; }
+.btn-row { display: flex; gap: 12px; margin-top: 6px; margin-bottom: 2px; }
 .btn {
   flex: 1; border: none; border-radius: 14px; padding: 15px 10px;
   font-size: 15px; font-weight: 600; cursor: pointer; background: var(--pink-soft); color: var(--pink-deep);
@@ -251,7 +251,7 @@ body {
 .btn.ghost { background: var(--surface-2); color: var(--pink-deep); border: 1px solid var(--line); }
 .btn:active { transform: scale(.98); }
 
-.mini { font-size: 13px; color: var(--ink-2); text-align: center; margin-top: 4px; }
+.mini { font-size: 13px; color: var(--ink-2); text-align: center; margin: 0 0 14px; padding-top: 12px; border-top: 1px solid var(--glass-border); }
 
 /* stat grid — 统一间距：内部 gap 与下方卡片间距一致 */
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }

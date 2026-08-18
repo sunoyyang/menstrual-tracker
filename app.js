@@ -336,8 +336,8 @@ function renderToday() {
     <div class="btn-row">
       <button class="btn" data-action="open-period">记经期</button>
     </div>
-    ${renderHealth()}
-    <div class="mini">${mini}</div>`;
+    <div class="mini">${mini}</div>
+    ${renderHealth()}`;
 }
 
 function renderCalendar() {
