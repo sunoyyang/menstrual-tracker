@@ -4,7 +4,7 @@
 /* ---------- 存储 ---------- */
 const KEY = 'cycle.tracker.v1';
 function defaults() {
-  return { periods: [], intimacy: [], habits: [], settings: { avgCycle: 28, luteal: 14, periodLen: 5, lightIntensity: 0.55, passcode: null, theme: 'light', reminders: { period: true, fertile: false } }, _mig: { themeV1: false } };
+  return { periods: [], habits: [], settings: { avgCycle: 28, luteal: 14, periodLen: 5, lightIntensity: 0.55, passcode: null, theme: 'light', reminders: { period: true } }, _mig: { themeV1: false } };
 }
 function load() {
   try {
@@ -13,7 +13,6 @@ function load() {
       const o = JSON.parse(raw);
       const d = defaults();
       d.periods = Array.isArray(o.periods) ? o.periods : [];
-      d.intimacy = Array.isArray(o.intimacy) ? o.intimacy : [];
       d.habits = Array.isArray(o.habits) ? o.habits : [];
       if (o.settings) d.settings = Object.assign(d.settings, o.settings);
       if (o._mig) d._mig = Object.assign(d._mig, o._mig);
@@ -123,37 +122,6 @@ function phaseInfo(dateStr) {
   if (dateStr <= next) return { phase: '黄体期', cls: '' };
   return { phase: '黄体期', cls: '' };
 }
-
-/* Wilcox 1995 单次同房受孕概率（相对排卵日偏移） */
-const WILCOX = [[-6, 0.00], [-5, 0.10], [-4, 0.16], [-3, 0.14], [-2, 0.27], [-1, 0.31], [0, 0.33], [1, 0.15], [2, 0.04], [3, 0.01]];
-function wilcox(off) {
-  if (off <= -6) return 0;
-  if (off >= 3) return 0.01;
-  for (let i = 0; i < WILCOX.length - 1; i++) {
-    const [a, pa] = WILCOX[i], [b, pb] = WILCOX[i + 1];
-    if (off >= a && off <= b) return pa + (pb - pa) * (off - a) / (b - a);
-  }
-  return 0.01;
-}
-function pregnancy() {
-  const ps = sortedPeriods();
-  if (ps.length === 0) return { prob: 0, count: 0, has: false };
-  const last = ps[ps.length - 1].start;
-  const next = predictNextStart();
-  const ovu = ovulation();
-  const recs = S.intimacy.filter(r => r.hadSex && r.date >= last && r.date <= next);
-  let P = 1;
-  recs.forEach(r => {
-    let p = wilcox(diffDays(ovu, r.date));
-    if (r.contraception && r.contraception !== 'none') {
-      const f = { condom: 0.13, pill: 0.01, other: 0.10 }[r.contraception] || 0.10;
-      p = p * f;
-    }
-    P *= (1 - p);
-  });
-  return { prob: Math.round((1 - P) * 100), count: recs.length, has: true };
-}
-function conLabel(c) { return { none: '无措施', condom: '避孕套', pill: '口服', other: '其他' }[c] || c; }
 
 /* ---------- 经期健康习惯（打卡 + 统计 + 权威建议） ---------- */
 function ensureTodayHabit() {
@@ -491,7 +459,6 @@ function renderCalendar() {
     else if (ds >= fw[0] && ds <= fw[1]) cls += ' fertile';
     if (ds === ovu) cls += ' ovu';
     if (ds === t) cls += ' today';
-    const hasIns = S.intimacy.some(r => r.date === ds);
     const hasProc = procSet.has(ds);
     const isStart = startSet.has(ds);
     const isEnd = endSet.has(ds);
@@ -500,7 +467,6 @@ function renderCalendar() {
     else if (isStart) badges += '<span class="se-badge start" title="经期开始">始</span>';
     else if (isEnd) badges += '<span class="se-badge end" title="经期结束">止</span>';
     if (hasProc) badges += '<span class="record-badge" title="有过程记录">记</span>';
-    if (hasIns) badges += '<span class="dot"></span>';
     cells += `<div class="${cls}" data-action="day-open" data-date="${ds}">${d}${badges}</div>`;
   }
   const ongoingPrompt = (lp && !lp.end)
@@ -508,23 +474,20 @@ function renderCalendar() {
     : '';
   return `<div class="cal-head"><button data-action="cal-prev">‹</button><div class="m">${y}年${m + 1}月</div><button data-action="cal-next">›</button></div>
    <div class="cal-grid"><div class="cal-dow">一</div><div class="cal-dow">二</div><div class="cal-dow">三</div><div class="cal-dow">四</div><div class="cal-dow">五</div><div class="cal-dow">六</div><div class="cal-dow">日</div>${cells}</div>
-   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i style="background:var(--pink-deep);border-radius:50%;width:8px;height:8px"></i>亲密</span><span><i class="legend-record">记</i>过程记录</span><span><i class="legend-start">始</i>经期开始</span><span><i class="legend-end">止</i>经期结束</span></div>
+   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i class="legend-record">记</i>过程记录</span><span><i class="legend-start">始</i>经期开始</span><span><i class="legend-end">止</i>经期结束</span></div>
    ${ongoingPrompt}`;
 }
 
 function renderStats() {
   const reg = regularity();
   const next = predictNextStart(), ovu = ovulation(), fw = fertileWindow();
-  const preg = pregnancy();
   let html = `<div class="grid2">
     <div class="stat"><div class="k">平均周期</div><div class="v">${avgCycle()}<small> 天</small></div></div>
     <div class="stat"><div class="k">规律度</div><div class="v">${reg.label}</div></div>
     <div class="stat"><div class="k">下次经期(预测)</div><div class="v" style="font-size:15px">${fmtMD(next)}</div></div>
     <div class="stat"><div class="k">排卵日(预测)</div><div class="v" style="font-size:15px">${fmtMD(ovu)}</div></div>
     <div class="stat"><div class="k">易孕窗口</div><div class="v" style="font-size:13px">${fmtMD(fw[0])} ~ ${fmtMD(fw[1])}</div></div>
-    <div class="stat"><div class="k">本月受孕概率</div><div class="v">${preg.has ? preg.prob + '%' : '—'}</div></div>
   </div>`;
-  html += `<div class="card"><h3>说明</h3><div class="disclaimer">受孕概率为人群统计参考（Wilcox 1995），基于已记录的「爱爱」日期与推算排卵日估算，<b>非医学诊断、不可作为避孕依据</b>。记录越多、周期越规律，推算越准。</div></div>`;
   const ps = sortedPeriods();
   if (ps.length) {
     html += `<div class="card"><h3>历史周期</h3>`;
@@ -789,73 +752,8 @@ function savePeriod() {
   save(); closeModal(); render(); toast('已保存');
 }
 
-function openIntimacyModal(prefill) {
-  const d = prefill || todayKey();
-  modal(`<h2>记录亲密</h2>
-   <div class="field date-field"><label>日期</label><input type="date" id="iDate" value="${d}"></div>
-   <div class="field"><label>是否爱爱</label><div class="seg" id="iSex">
-     <div class="chip on" data-v="yes">是</div><div class="chip" data-v="no">否</div></div></div>
-   <div class="field"><label>避孕方式</label>
-     <div class="custom-select" id="iConWrap">
-       <button type="button" class="cs-trigger" id="iConTrigger">
-         <span id="iConLabel">避孕套</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-       </button>
-       <ul class="cs-menu" id="iConMenu">
-         <li class="cs-opt" data-v="none">无措施</li>
-         <li class="cs-opt on" data-v="condom">避孕套</li>
-         <li class="cs-opt" data-v="pill">口服</li>
-         <li class="cs-opt" data-v="other">其他</li>
-       </ul>
-       <input type="hidden" id="iCon" value="condom">
-     </div></div>
-   <div class="field"><label>备注</label><textarea id="iNote" placeholder="选填"></textarea></div>
-   <div class="actions"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn primary" data-action="save-intimacy">保存</button></div>`);
-  bindChips('#iSex', true);
-  initCustomSelect('iCon');
-}
-
-/* ---------- 自定义下拉组件 ---------- */
-function initCustomSelect(id) {
-  const wrap = document.getElementById(id + 'Wrap');
-  const trigger = document.getElementById(id + 'Trigger');
-  const label = document.getElementById(id + 'Label');
-  const menu = document.getElementById(id + 'Menu');
-  const hidden = document.getElementById(id);
-  if (!wrap || !trigger || !menu) return;
-  trigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const open = menu.classList.contains('open');
-    closeAllCustomSelects();
-    if (!open) { menu.classList.add('open'); trigger.classList.add('open'); }
-  });
-  menu.querySelectorAll('.cs-opt').forEach(opt => {
-    opt.addEventListener('click', () => {
-      menu.querySelectorAll('.cs-opt').forEach(o => o.classList.remove('on'));
-      opt.classList.add('on');
-      label.textContent = opt.textContent;
-      hidden.value = opt.dataset.v;
-      menu.classList.remove('open'); trigger.classList.remove('open');
-    });
-  });
-}
-function closeAllCustomSelects() {
-  document.querySelectorAll('.cs-menu.open').forEach(m => m.classList.remove('open'));
-  document.querySelectorAll('.cs-trigger.open').forEach(t => t.classList.remove('open'));
-}
-document.addEventListener('click', () => closeAllCustomSelects());
-
-function saveIntimacy() {
-  const date = document.getElementById('iDate').value;
-  const had = document.querySelector('#iSex .chip.on').dataset.v === 'yes';
-  const con = document.getElementById('iCon').value;
-  const note = document.getElementById('iNote').value.trim();
-  S.intimacy.push({ id: uid(), date, hadSex: had, contraception: con, note });
-  save(); closeModal(); render(); toast('已保存');
-}
-
 function openDaySheet(dateStr) {
   const p = periodAt(dateStr); // 覆盖该日期的经期（重叠时取最早开始的）
-  const ins = S.intimacy.filter(r => r.date === dateStr);
   let html = `<h2>${fmtFull(dateStr)}</h2>`;
   const rows = [];
   if (p) {
@@ -886,7 +784,6 @@ function openDaySheet(dateStr) {
       }
     }
   }
-  ins.forEach(r => { rows.push(`<div class="row" style="margin-top:6px;border-top:1px dashed rgba(156,136,255,.25);padding-top:6px"><span class="label">${r.hadSex ? '💕 爱爱' : '亲密'}${r.contraception !== 'none' ? ' · ' + conLabel(r.contraception) : ''}</span><span class="val">${esc(r.note || '')}</span></div>`); });
   if (rows.length) {
     html += `<div class="card" style="box-shadow:none;margin-bottom:12px">${rows.join('')}</div>`;
   } else {
@@ -897,7 +794,7 @@ function openDaySheet(dateStr) {
   const startP = S.periods.find(pp => pp.start === dateStr);
   const endedP = (p && p.end) ? p : null;
   const editTarget = startP || endedP;
-  html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>`;
+  html += `<div class="actions"><button class="btn primary" data-action="open-period" data-date="${dateStr}">记经期(此日)</button></div>`;
   if (editTarget) {
     html += `<div class="actions"><button class="btn" data-action="edit-period" data-date="${dateStr}" data-id="${editTarget.id}">✏️ 修改本段经期</button>`;
     if (endedP) {
@@ -960,9 +857,7 @@ function doAction(a, el) {
     case 'edit-period': openPeriodModal(el && el.dataset.date, el.dataset.id); break;
     case 'edit-period-end': openEndEditModal(el.dataset.id); break;
     case 'save-end-edit': saveEndEdit(el.dataset.id); break;
-    case 'open-intimacy': openIntimacyModal(el && el.dataset.date); break;
     case 'save-period': savePeriod(); break;
-    case 'save-intimacy': saveIntimacy(); break;
     case 'habit-inc': bumpHabit(el.dataset.k, +(el.dataset.step || 1)); break;
     case 'habit-dec': bumpHabit(el.dataset.k, -(+(el.dataset.step || 1))); break;
     case 'habit-toggle': toggleHabit(el.dataset.k); break;
@@ -1005,7 +900,7 @@ function doAction(a, el) {
       inp.onchange = () => {
         const f = inp.files[0]; if (!f) return;
         const rd = new FileReader();
-        rd.onload = () => { try { const o = JSON.parse(rd.result); const d = defaults(); d.periods = o.periods || []; d.intimacy = o.intimacy || []; if (o.settings) d.settings = Object.assign(d.settings, o.settings); S = d; save(); render(); toast('导入成功'); } catch (e) { toast('文件格式错误'); } };
+        rd.onload = () => { try { const o = JSON.parse(rd.result); const d = defaults(); d.periods = o.periods || []; if (o.settings) d.settings = Object.assign(d.settings, o.settings); S = d; save(); render(); toast('导入成功'); } catch (e) { toast('文件格式错误'); } };
         rd.readAsText(f);
       };
       inp.click(); break;

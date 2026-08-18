@@ -319,9 +319,7 @@ body {
 .day.fertile { background: rgba(179, 157, 219, 0.28); border-color: rgba(179, 157, 219, 0.4); }
 /* 排卵日 — 暖琥珀金底 + 加深文字，一眼定位 */
 .day.ovu { background: rgba(246, 193, 119, 0.38); border-color: rgba(246, 193, 119, 0.55); color: #8a6d2b; font-weight: 600; }
-/* 亲密小点 — 玫红 + 微光晕，稍大更醒目 */
-.day .dot { position: absolute; bottom: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--pink-deep); box-shadow: 0 0 5px rgba(236,106,152,0.45); }
-/* 过程记录小点 — 右上角白色细环，与亲密点区分，提示「当日有每日记录」 */
+/* 过程记录小点 — 右上角白色细环，提示「当日有每日记录」 */
 .day .pdot { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 4px rgba(0,0,0,.25); }
 .day.period .pdot, .day.fertile .pdot, .day.ovu .pdot, .day.period-pred .pdot { background: #fff; }
 /* 经期开始 / 结束 统一徽章（左上角） */
