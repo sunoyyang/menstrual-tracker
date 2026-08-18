@@ -228,7 +228,7 @@ function healthAdvice(stats, p, h) {
     else if (min > 90) today.push({ lv: 'info', t: '今日运动偏长', d: `已记录 ${min} 分钟运动，经期不建议过度疲劳，注意补充水分和休息。`, sym: '疲劳、经量增多' });
     else today.push({ lv: 'good', t: '今日已运动', d: `已记录 ${min} 分钟运动，适度活动有助于缓解经期不适。`, sym: '' });
   } else if (!ended) {
-    today.push({ lv: 'info', t: '今日尚未记录运动', d: '经期适度运动（散步、瑜伽、拉伸）有助于缓解不适。', sym: '小腹坠胀、情绪低落' });
+    today.push({ lv: 'info', t: '今日尚未记录运动', d: '经期适度运动（散步、瑜伽、拉伸）有助于缓解不适。', sym: '' });
   }
 
   /* ---------- 阶段性累计建议（经期开始至今） ---------- */
@@ -245,7 +245,7 @@ function healthAdvice(stats, p, h) {
 
   if (stats.exDays >= 3) stage.push({ lv: 'good', t: '运动达标', d: `本经期已运动 ${stats.exDays} 天（共 ${stats.exMin} 分钟）。规律运动可显著降低经期疼痛（Cochrane 2019 系统综述）。`, sym: '' });
   else if (stats.exDays > 0) stage.push({ lv: 'info', t: '运动偏少', d: `本经期仅运动 ${stats.exDays} 天。建议再安排 1–2 次温和运动（散步、瑜伽、拉伸）。`, sym: '小腹坠胀、情绪低落' });
-  else stage.push({ lv: 'info', t: '尚未记录运动', d: '适度运动（散步、瑜伽、拉伸）可促进血液循环，帮助缓解痛经和腹胀。', sym: '淤血腹胀、情绪低落' });
+  else stage.push({ lv: 'info', t: '尚未记录运动', d: '适度运动（散步、瑜伽、拉伸）可促进血液循环，帮助缓解痛经和腹胀。', sym: '' });
 
   if (stats.exDays === 0 && (stats.icedTea > 0 || stats.spicy > 0)) {
     stage.push({ lv: 'warn', t: '刺激饮食且缺乏运动', d: '经期吃了生冷辛辣食物但又没有记录运动，容易加重淤血和不适。建议饭后散步 15–20 分钟。', sym: '腹胀、便秘、痛经' });
@@ -261,7 +261,7 @@ function healthAdvice(stats, p, h) {
     if (stats.spicy >= 3) next.push({ lv: 'warn', t: '下一轮建议：清淡饮食', d: `本轮吃了 ${stats.spicy} 份辣，下一轮经期前一周建议减少辛辣，避免前列腺素过度分泌。`, sym: '子宫痉挛、胃痛' });
     if (totalCaffeine >= 5) next.push({ lv: 'info', t: '下一轮建议：控制奶茶', d: `本轮奶茶合计 ${totalCaffeine} 杯，咖啡因摄入偏高。下一轮建议每天不超过 1 杯，并优先选热饮。`, sym: '失眠、焦虑' });
     if (stats.exDays >= 3) next.push({ lv: 'good', t: '下一轮建议：保持运动', d: '本轮运动频率良好，建议在下一轮经期前继续保持每周 3–5 次温和运动。', sym: '' });
-    else if (stats.exDays === 0) next.push({ lv: 'info', t: '下一轮建议：增加运动', d: '本轮未记录运动，建议从经期结束后开始逐步建立每周 3 次、每次 30 分钟以上的运动习惯。', sym: '痛经、情绪低落' });
+    else if (stats.exDays === 0) next.push({ lv: 'info', t: '下一轮建议：增加运动', d: '本轮未记录运动，建议从经期结束后开始逐步建立每周 3 次、每次 30 分钟以上的运动习惯。', sym: '' });
 
     /* 本轮健康风险总结 */
     if (stats.icedTea >= 3 || stats.spicy >= 3 || totalCaffeine >= 5) {
@@ -338,7 +338,13 @@ function renderHealth() {
     };
     const nextTitle = ended ? '下一轮经期建议（基于本轮记录）' : '当前阶段预测';
     const nextList = ended ? adv.next : adv.next.slice(0, 0); // 未结束时不显示下一轮
-    const symHtml = adv.syms.length ? `<div class="h-sym"><div class="h-sym-title">可能出现的不适</div><div class="h-sym-list">${adv.syms.join(' · ')}</div><div class="h-sym-note">以上为基于记录的习惯推测，个体差异大，如有严重不适请及时就医。</div></div>` : '';
+    const foodRecorded = (h.spicy > 0 || h.hotTea > 0 || h.icedTea > 0) || (stats && (stats.spicy > 0 || stats.hotTea > 0 || stats.icedTea > 0));
+    let symHtml = '';
+    if (foodRecorded) {
+      if (adv.syms.length) symHtml = `<div class="h-sym"><div class="h-sym-title">可能出现的不适</div><div class="h-sym-list">${adv.syms.join(' · ')}</div><div class="h-sym-note">以上为基于记录的习惯推测，个体差异大，如有严重不适请及时就医。</div></div>`;
+    } else {
+      symHtml = `<div class="h-sym"><div class="h-sym-title">可能出现的不适</div><div class="h-sym-empty">尚未记录，无法推断（吃辣、喝奶茶）可能导致的不适。</div></div>`;
+    }
     adviceHtml = `<div class="h-section"><div class="h-section-title">健康建议</div>
       ${tipBlock('今日建议', adv.today)}
       ${tipBlock('阶段性建议（经期开始至今）', adv.stage)}
