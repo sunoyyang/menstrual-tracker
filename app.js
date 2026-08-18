@@ -4,7 +4,7 @@
 /* ---------- 存储 ---------- */
 const KEY = 'cycle.tracker.v1';
 function defaults() {
-  return { periods: [], intimacy: [], settings: { avgCycle: 28, luteal: 14, periodLen: 5, lightIntensity: 0.55, passcode: null, theme: 'light', reminders: { period: true, fertile: false } }, _mig: { themeV1: false } };
+  return { periods: [], intimacy: [], habits: [], settings: { avgCycle: 28, luteal: 14, periodLen: 5, lightIntensity: 0.55, passcode: null, theme: 'light', reminders: { period: true, fertile: false } }, _mig: { themeV1: false } };
 }
 function load() {
   try {
@@ -14,6 +14,7 @@ function load() {
       const d = defaults();
       d.periods = Array.isArray(o.periods) ? o.periods : [];
       d.intimacy = Array.isArray(o.intimacy) ? o.intimacy : [];
+      d.habits = Array.isArray(o.habits) ? o.habits : [];
       if (o.settings) d.settings = Object.assign(d.settings, o.settings);
       if (o._mig) d._mig = Object.assign(d._mig, o._mig);
       return d;
@@ -154,6 +155,96 @@ function pregnancy() {
 }
 function conLabel(c) { return { none: '无措施', condom: '避孕套', pill: '口服', other: '其他' }[c] || c; }
 
+/* ---------- 经期健康习惯（打卡 + 统计 + 权威建议） ---------- */
+function ensureTodayHabit() {
+  let h = S.habits.find(x => x.date === todayKey());
+  if (!h) { h = { date: todayKey(), spicy: 0, hotTea: 0, icedTea: 0, exercised: false, exerciseMin: 0 }; S.habits.push(h); }
+  return h;
+}
+function bumpHabit(k, delta) {
+  const h = ensureTodayHabit();
+  let v = (h[k] || 0) + delta;
+  if (v < 0) v = 0;
+  h[k] = v;
+  save(); render();
+  const map = { spicy: ['吃辣', '份'], hotTea: ['热奶茶', '杯'], icedTea: ['冰奶茶', '杯'], exerciseMin: ['运动', '分钟'] };
+  const m = map[k] || [k, ''];
+  toast(m[0] + ' ' + v + m[1]);
+}
+function toggleHabit(k) {
+  const h = ensureTodayHabit();
+  h[k] = !h[k];
+  save(); render();
+  toast(h[k] ? '已记录运动' : '已取消运动');
+}
+/* 统计某段经期区间内的习惯汇总（仅经期区间 [start, end]） */
+function periodHabitStats(p) {
+  if (!p) return null;
+  const [s, e] = periodSpan(p);
+  let spicy = 0, hotTea = 0, icedTea = 0, exDays = 0, exMin = 0;
+  S.habits.forEach(h => {
+    if (h.date >= s && h.date <= e) {
+      spicy += h.spicy || 0; hotTea += h.hotTea || 0; icedTea += h.icedTea || 0;
+      if (h.exercised) { exDays++; exMin += h.exerciseMin || 0; }
+    }
+  });
+  return { spicy, hotTea, icedTea, exDays, exMin, start: s, end: e, days: diffDays(s, e) + 1 };
+}
+/* 本期是否含痛经（腹痛）症状 */
+function periodHasCramp(p) {
+  if (!p) return false;
+  if (p.symptoms && p.symptoms.includes('腹痛')) return true;
+  if (Array.isArray(p.daily)) return p.daily.some(d => d.symptoms && d.symptoms.includes('腹痛'));
+  return false;
+}
+/* 权威知识库（来源见每条文案） */
+function healthAdvice(stats, p) {
+  const tips = [];
+  const cramp = periodHasCramp(p);
+  if (stats.icedTea >= 3) tips.push({ lv: 'warn', t: '冰奶茶偏多（' + stats.icedTea + ' 杯）', d: '生冷 + 咖啡因叠加易加重痛经，经期建议减量。来源：ACOG / 科普中国 / 中华医学会' });
+  else if (stats.icedTea >= 2) tips.push({ lv: 'warn', t: '冰奶茶偏多（' + stats.icedTea + ' 杯）', d: '含咖啡因与生冷刺激，敏感人群可能加重不适，建议少喝。' });
+  if (stats.hotTea >= 3) tips.push({ lv: 'warn', t: '热奶茶偏多（' + stats.hotTea + ' 杯）', d: '咖啡因升高前列腺素、高糖致血糖波动，仍可能加剧痛经。' });
+  if (stats.spicy >= 3) tips.push({ lv: 'warn', t: '吃辣偏多（' + stats.spicy + ' 份）', d: '辛辣促进前列腺素分泌→子宫痉挛、并刺激胃肠。来源：《中华妇产科学》/ 科普中国' });
+  if (cramp && (stats.icedTea >= 2 || stats.spicy >= 3)) tips.push({ lv: 'info', t: '痛经关联提醒', d: '本期有腹痛/痛经，且冰饮/辣频次偏高，可能与这些习惯相关，经期可尝试减少。非诊断、仅供参考。' });
+  if (stats.exDays >= 3) tips.push({ lv: 'good', t: '运动达标（' + stats.exDays + ' 天）', d: '每周≥3 次、每次 45–60 分钟运动可显著降低经期疼痛（Cochrane 2019 系统综述）。继续坚持！' });
+  else if (stats.exDays > 0) tips.push({ lv: 'info', t: '运动偏少（' + stats.exDays + ' 天）', d: 'Cochrane 2019 显示规律运动（瑜伽/步行/拉伸）可降痛经约 25%，建议经期做温和运动。' });
+  else tips.push({ lv: 'info', t: '本期尚未记录运动', d: '适度温和运动（如散步、瑜伽）有助于缓解经期不适。' });
+  return tips;
+}
+function renderHealth() {
+  const t = todayKey();
+  const h = S.habits.find(x => x.date === t) || { date: t, spicy: 0, hotTea: 0, icedTea: 0, exercised: false, exerciseMin: 0 };
+  const p = periodAt(t) || latestPeriod();
+  const stats = p ? periodHabitStats(p) : null;
+  const tips = stats ? healthAdvice(stats, p) : [];
+  const step = (k, unit, val) =>
+    `<div class="h-step"><button class="h-btn" data-action="habit-dec" data-k="${k}" data-step="1">−</button><span class="h-val">${val} ${unit}</span><button class="h-btn" data-action="habit-inc" data-k="${k}" data-step="1">+</button></div>`;
+  let rows = `<div class="h-row"><div class="h-name">运动</div><div class="h-ctrl">
+      <button class="h-toggle${h.exercised ? ' on' : ''}" data-action="habit-toggle" data-k="exercised">${h.exercised ? '已运动' : '未运动'}</button>
+      ${step('exerciseMin', '分钟', h.exerciseMin)}</div></div>`;
+  rows += `<div class="h-row"><div class="h-name">吃辣</div>${step('spicy', '份', h.spicy)}</div>`;
+  rows += `<div class="h-row"><div class="h-name">热奶茶</div>${step('hotTea', '杯', h.hotTea)}</div>`;
+  rows += `<div class="h-row"><div class="h-name">冰奶茶</div>${step('icedTea', '杯', h.icedTea)}</div>`;
+  let statsHtml = '';
+  if (stats) {
+    statsHtml = `<div class="h-stats">
+      <span class="h-chip">辣 ${stats.spicy} 份</span>
+      <span class="h-chip${stats.icedTea >= 2 ? ' warn' : ''}">冰奶茶 ${stats.icedTea} 杯</span>
+      <span class="h-chip">热奶茶 ${stats.hotTea} 杯</span>
+      <span class="h-chip${stats.exDays >= 3 ? ' good' : ''}">运动 ${stats.exDays} 天</span>
+    </div>`;
+  }
+  let adviceHtml = '';
+  if (!stats) {
+    adviceHtml = `<div class="h-advice"><div class="h-tip info"><div class="h-tip-t">记录经期后展示统计</div><div class="h-tip-d">打卡数据已保存；记录经期后，这里会自动汇总本期吃辣 / 奶茶 / 运动并给出健康建议。</div></div></div>`;
+  } else if (tips.length) {
+    adviceHtml = `<div class="h-advice"><div class="h-advice-title">健康建议</div>` +
+      tips.map(t => `<div class="h-tip ${t.lv}"><div class="h-tip-t">${t.t}</div><div class="h-tip-d">${t.d}</div></div>`).join('') +
+      `<div class="h-src">数据来源：Cochrane 2019 / ACOG / 科普中国 / 中华医学会 / 《中华妇产科学》。仅供参考，非医学诊断。</div></div>`;
+  }
+  return `<div class="card health"><h3>经期健康记录</h3><div class="h-rows">${rows}</div>${statsHtml}${adviceHtml}</div>`;
+}
+
 /* ---------- 渲染 ---------- */
 let currentTab = 'today';
 let calMonth = new Date();
@@ -244,8 +335,8 @@ function renderToday() {
     </div>
     <div class="btn-row">
       <button class="btn" data-action="open-period">记经期</button>
-      <button class="btn primary" data-action="open-intimacy">记亲密</button>
     </div>
+    ${renderHealth()}
     <div class="mini">${mini}</div>`;
 }
 
@@ -711,6 +802,9 @@ function doAction(a, el) {
     case 'open-intimacy': openIntimacyModal(el && el.dataset.date); break;
     case 'save-period': savePeriod(); break;
     case 'save-intimacy': saveIntimacy(); break;
+    case 'habit-inc': bumpHabit(el.dataset.k, +(el.dataset.step || 1)); break;
+    case 'habit-dec': bumpHabit(el.dataset.k, -(+(el.dataset.step || 1))); break;
+    case 'habit-toggle': toggleHabit(el.dataset.k); break;
     case 'delete-period': deletePeriod(el.dataset.id); break;
     case 'clear-end': clearEnd(el.dataset.id); break;
     case 'day-open': openDaySheet(el.dataset.date); break;

@@ -475,3 +475,44 @@ body {
   display: inline-block; padding: 1px 8px; border-radius: 10px;
   background: rgba(179, 157, 219, 0.18); color: var(--purple); font-size: 11px; vertical-align: middle;
 }
+
+/* 今天页 — 健康记录板块 */
+.health h3 { margin: 0 0 12px; font-size: 14px; color: var(--ink-2); font-weight: 600; }
+.h-rows { display: flex; flex-direction: column; gap: 10px; }
+.h-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.h-name { font-size: 14px; color: var(--ink); }
+.h-ctrl { display: flex; align-items: center; gap: 10px; }
+.h-toggle {
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  border-radius: 20px; padding: 7px 14px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+.h-toggle.on { background: var(--pink); color: #fff; border-color: var(--pink); }
+.h-step { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 20px; padding: 3px; }
+.h-btn {
+  width: 30px; height: 30px; border: none; border-radius: 50%;
+  background: var(--pink-soft); color: var(--pink-deep); font-size: 18px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform .12s ease, background .2s ease;
+}
+.h-btn:active { transform: scale(.9); }
+.h-val { min-width: 48px; text-align: center; font-size: 13px; color: var(--ink); }
+.h-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.h-chip {
+  font-size: 12px; padding: 5px 12px; border-radius: 14px;
+  background: rgba(179, 157, 219, 0.14); color: var(--purple);
+}
+.h-chip.warn { background: rgba(244, 143, 177, 0.18); color: var(--pink-deep); }
+.h-chip.good { background: rgba(120, 200, 140, 0.18); color: #3a9d5a; }
+.h-advice { margin-top: 14px; }
+.h-advice-title { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.h-tip { border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid transparent; }
+.h-tip.warn { background: rgba(244, 143, 177, 0.12); border-color: rgba(244, 143, 177, 0.3); }
+.h-tip.good { background: rgba(120, 200, 140, 0.12); border-color: rgba(120, 200, 140, 0.3); }
+.h-tip.info { background: rgba(179, 157, 219, 0.1); border-color: rgba(179, 157, 219, 0.25); }
+.h-tip-t { font-size: 13px; font-weight: 600; color: var(--ink); }
+.h-tip.warn .h-tip-t { color: var(--pink-deep); }
+.h-tip.good .h-tip-t { color: #3a9d5a; }
+.h-tip.info .h-tip-t { color: #6b5aa6; }
+.h-tip-d { font-size: 12px; color: var(--ink-2); margin-top: 3px; line-height: 1.5; }
+.h-src { font-size: 11px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; opacity: .85; }
