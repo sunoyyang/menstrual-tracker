@@ -342,6 +342,8 @@ body {
   margin: 0;
 }
 .field input[type="hidden"] { display: none; }
+/* 日期选择器：选中值与整体视觉居中对齐 */
+.field input[type="date"] { text-align: center; }
 .field textarea { resize: vertical; min-height: 64px; }
 
 /* 自定义下拉框 — 玻璃风格 */
