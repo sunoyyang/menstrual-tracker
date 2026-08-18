@@ -915,7 +915,7 @@ document.addEventListener('click', (e) => {
   const th = e.target.closest('#pTheme .chip');
   if (th) { S.settings.theme = th.dataset.v; save(); applyTheme(); render(); toast('外观已更新'); return; }
   const el = e.target.closest('[data-action]');
-  if (el) doAction(el.dataset.action, el);
+  if (el && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) doAction(el.dataset.action, el);
 });
 
 /* 光效强度滑块：拖动时实时预览，松开后持久化 */

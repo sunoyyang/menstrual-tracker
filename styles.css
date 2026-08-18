@@ -560,9 +560,11 @@ body {
 .h-btn:active { transform: scale(.9); }
 .h-val { min-width: 48px; text-align: center; font-size: 13px; color: var(--ink); }
 .h-input {
-  width: 48px; text-align: center; font-size: 13px; color: var(--ink);
+  width: 48px; min-height: 30px; text-align: center; font-size: 13px; color: var(--ink);
   background: transparent; border: none; padding: 0; margin: 0;
   font-family: inherit; -moz-appearance: textfield;
+  pointer-events: auto; position: relative; z-index: 1;
+  -webkit-user-select: auto; user-select: auto; -webkit-touch-callout: default;
 }
 .h-input::-webkit-outer-spin-button,
 .h-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
