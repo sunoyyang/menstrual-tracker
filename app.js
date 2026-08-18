@@ -517,7 +517,7 @@ function openPeriodModal(prefill, editId) {
   modal(`<h2>${title}</h2>
    <div class="field"><label>类型</label>${typeSeg}</div>
    ${note}
-   <div class="field" id="pDateWrap"><label id="pDateLabel">开始日期</label><input type="date" id="pDate" value="${d}"></div>
+   <div class="field date-field" id="pDateWrap"><label id="pDateLabel">开始日期</label><input type="date" id="pDate" value="${d}"></div>
    ${dayHint}
    <div class="field" id="pFlowWrap"><label>经量</label><div class="chips" id="pFlow">
      ${flowOpts.map(f => `<div class="chip${flowOn(f)}" data-v="${f}">${f}</div>`).join('')}</div></div>
@@ -638,7 +638,7 @@ function savePeriod() {
 function openIntimacyModal(prefill) {
   const d = prefill || todayKey();
   modal(`<h2>记录亲密</h2>
-   <div class="field"><label>日期</label><input type="date" id="iDate" value="${d}"></div>
+   <div class="field date-field"><label>日期</label><input type="date" id="iDate" value="${d}"></div>
    <div class="field"><label>是否爱爱</label><div class="seg" id="iSex">
      <div class="chip on" data-v="yes">是</div><div class="chip" data-v="no">否</div></div></div>
    <div class="field"><label>避孕方式</label>
@@ -774,7 +774,7 @@ function openEndEditModal(id) {
   const dur = diffDays(p.start, d) + 1;
   modal(`<h2>修改结束日</h2>
    <div class="field-note">正在修改从 ${fmtMD(p.start)} 开始的这段经期的结束日（当前共 ${dur} 天）。</div>
-   <div class="field"><label>结束日期</label><input type="date" id="eDate" value="${d}"></div>
+   <div class="field date-field"><label>结束日期</label><input type="date" id="eDate" value="${d}"></div>
    <div class="actions"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn primary" data-action="save-end-edit" data-id="${p.id}">保存</button></div>`);
 }
 function saveEndEdit(id) {

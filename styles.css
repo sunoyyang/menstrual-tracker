@@ -342,7 +342,8 @@ body {
   margin: 0;
 }
 .field input[type="hidden"] { display: none; }
-/* 日期选择器：去掉原生外观，使框的长/宽与「选填」文本框一致，值居中 */
+/* 日期选择器：去掉原生外观，使框的长/宽与「选填」文本框一致；标签+值都居中 */
+.field.date-field label { text-align: center; }
 .field input[type="date"] {
   text-align: center;
   -webkit-appearance: none;
