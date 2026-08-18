@@ -177,6 +177,16 @@ function toggleHabit(k) {
   save(); render();
   toast(h[k] ? '已记录运动' : '已取消运动');
 }
+function setHabitNum(k, raw) {
+  const h = ensureTodayHabit();
+  let v = parseInt(raw, 10) || 0;
+  if (v < 0) v = 0;
+  if (k === 'exerciseMin' && v > 300) v = 300;
+  h[k] = v;
+  if (k === 'exerciseMin') h.exercised = v > 0;
+  save(); render();
+  toast(k === 'exerciseMin' ? `已更新运动 ${v} 分钟` : '已更新');
+}
 /* 统计某段经期区间内的习惯汇总（仅经期区间 [start, end]） */
 function periodHabitStats(p) {
   if (!p) return null;
@@ -217,8 +227,12 @@ function renderHealth() {
   const p = periodAt(t) || latestPeriod();
   const stats = p ? periodHabitStats(p) : null;
   const tips = stats ? healthAdvice(stats, p) : [];
-  const step = (k, unit, val) =>
-    `<div class="h-step"><button class="h-btn" data-action="habit-dec" data-k="${k}" data-step="1">−</button><span class="h-val">${val} ${unit}</span><button class="h-btn" data-action="habit-inc" data-k="${k}" data-step="1">+</button></div>`;
+  const step = (k, unit, val) => {
+    const display = k === 'exerciseMin'
+      ? `<input type="number" class="h-input" inputmode="numeric" min="0" max="300" value="${val}" data-action="habit-set" data-k="${k}"><span class="h-unit">${unit}</span>`
+      : `<span class="h-val">${val} ${unit}</span>`;
+    return `<div class="h-step"><button class="h-btn" data-action="habit-dec" data-k="${k}" data-step="1">−</button>${display}<button class="h-btn" data-action="habit-inc" data-k="${k}" data-step="1">+</button></div>`;
+  };
   let rows = `<div class="h-row"><div class="h-name">运动</div><div class="h-ctrl">
       <button class="h-toggle${h.exercised ? ' on' : ''}" data-action="habit-toggle" data-k="exercised">${h.exercised ? '已运动' : '未运动'}</button>
       ${step('exerciseMin', '分钟', h.exerciseMin)}</div></div>`;
@@ -843,6 +857,7 @@ function doAction(a, el) {
     case 'habit-inc': bumpHabit(el.dataset.k, +(el.dataset.step || 1)); break;
     case 'habit-dec': bumpHabit(el.dataset.k, -(+(el.dataset.step || 1))); break;
     case 'habit-toggle': toggleHabit(el.dataset.k); break;
+    case 'habit-set': setHabitNum(el.dataset.k, el.value); break;
     case 'toggle-health': healthExpanded = !healthExpanded; render(); break;
     case 'delete-period': deletePeriod(el.dataset.id); break;
     case 'clear-end': clearEnd(el.dataset.id); break;
@@ -913,9 +928,13 @@ document.addEventListener('input', (e) => {
   if (lab) lab.textContent = e.target.value + '%';
 });
 document.addEventListener('change', (e) => {
-  if (e.target.id !== 'lightIntensity') return;
-  S.settings.lightIntensity = +e.target.value / 100;
-  save();
+  if (e.target.id === 'lightIntensity') {
+    S.settings.lightIntensity = +e.target.value / 100;
+    save();
+    return;
+  }
+  const hel = e.target.closest('[data-action="habit-set"]');
+  if (hel) doAction('habit-set', hel);
 });
 
 /* ---------- 启动密码门 ---------- */
