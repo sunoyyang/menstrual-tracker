@@ -159,6 +159,19 @@ let currentTab = 'today';
 let calMonth = new Date();
 let currentLocked = false;
 
+/* 展示某天的过程记录卡片（今天页用） */
+function buildDailyCard(p, t) {
+  if (!Array.isArray(p.daily)) return '';
+  const todayRec = p.daily.find(r => r.date === t);
+  if (!todayRec) return '';
+  const dsym = todayRec.symptoms && todayRec.symptoms.length ? todayRec.symptoms.join(' ') : '';
+  return `<div class="today-daily">
+    <span class="td-flow">${todayRec.flow || ''}</span>
+    ${dsym ? `<span class="td-sym">${esc(dsym)}</span>` : ''}
+    ${todayRec.mood ? `<span class="td-mood">· ${todayRec.mood}</span>` : ''}
+  </div>`;
+}
+
 function renderToday() {
   const t = todayKey();
   const p = periodAt(t);
@@ -166,34 +179,41 @@ function renderToday() {
   if (p) {
     const start = p.start;
     const d = diffDays(start, t) + 1;
-    const endEst = periodEndEst(p);
-    const toEnd = diffDays(t, endEst);
-    const endMsg = toEnd > 0 ? `距离经期结束还有 ${toEnd} 天`
-      : toEnd === 0 ? '今天是经期最后一天'
-      : `经期已结束 ${-toEnd} 天，记得记录结束日`;
-    phase = '月经期';
-    countHtml = `<div class="count">${d}<small> 天</small></div>`;
-    sub = `${endMsg} · 当前第 ${d} 天`;
-    /* 展示今日过程记录（如果有） */
-    if (Array.isArray(p.daily)) {
-      const todayRec = p.daily.find(r => r.date === t);
-      if (todayRec) {
-        const dsym = todayRec.symptoms && todayRec.symptoms.length ? todayRec.symptoms.join(' ') : '';
-        dailyHtml = `<div class="today-daily">
-          <span class="td-flow">${todayRec.flow || ''}</span>
-          ${dsym ? `<span class="td-sym">${esc(dsym)}</span>` : ''}
-          ${todayRec.mood ? `<span class="td-mood">· ${todayRec.mood}</span>` : ''}
-        </div>`;
-      }
-      /* 已记录天数提示 */
-      const recCnt = p.daily.length;
-      if (recCnt > 0) {
-        sub += ` <small class="daily-badge">已记录 ${recCnt}/${d} 天</small>`;
-      }
+    if (p.end) {
+      /* 经期已结束（今天为结束日）：显示本经期天数 + 距下次预测经期 */
+      const dur = diffDays(start, p.end) + 1;
+      const next = predictNextStart();
+      const toNext = diffDays(t, next);
+      phase = '月经期';
+      countHtml = `<div class="count">${dur}<small> 天</small></div>`;
+      sub = `本经期 ${dur} 天 · 距离下次预测经期开始还有 ${toNext} 天`;
+      dailyHtml = buildDailyCard(p, t);
+    } else {
+      const endEst = periodEndEst(p);
+      const toEnd = diffDays(t, endEst);
+      const endMsg = toEnd > 0 ? `距离经期结束还有 ${toEnd} 天`
+        : toEnd === 0 ? '今天是经期最后一天'
+        : `经期已结束 ${-toEnd} 天，记得记录结束日`;
+      phase = '月经期';
+      countHtml = `<div class="count">${d}<small> 天</small></div>`;
+      sub = `${endMsg} · 当前第 ${d} 天`;
+      dailyHtml = buildDailyCard(p, t);
+    }
+    /* 已记录天数提示（进行中或结束当天都显示） */
+    if (Array.isArray(p.daily) && p.daily.length) {
+      sub += ` <small class="daily-badge">已记录 ${p.daily.length}/${d} 天</small>`;
     }
   } else {
     const lp = latestPeriod();
-    if (!lp) {
+    if (lp && lp.end && t > lp.end) {
+      /* 本段经期刚结束（今天在结束日之后）：展示经期天数 + 距下次预测经期开始 */
+      const dur = diffDays(lp.start, lp.end) + 1;
+      const next = predictNextStart();
+      const toNext = diffDays(t, next);
+      phase = '月经期';
+      countHtml = `<div class="count">${dur}<small> 天</small></div>`;
+      sub = `本经期 ${dur} 天 · 距离下次预测经期开始还有 ${toNext} 天`;
+    } else if (!lp) {
       phase = '待记录';
       countHtml = '';
       sub = '还没有经期记录，点下方按钮开始';
@@ -608,11 +628,19 @@ function openDaySheet(dateStr) {
   } else {
     html += `<div class="empty">这一天还没有记录</div>`;
   }
-  /* 若该日是某条经期的「开始日」，允许删除整条经期（用于修正误点的开始） */
+  /* 若该日是某条经期的「开始日」，或该日期落在某条「已结束」经期内，
+     允许修改本段经期 / 修改结束日 / 删除整条（用于修正误记的结束日等） */
   const startP = S.periods.find(pp => pp.start === dateStr);
+  const endedP = (p && p.end) ? p : null;
+  const editTarget = startP || endedP;
   html += `<div class="actions"><button class="btn" data-action="open-period" data-date="${dateStr}">记经期(此日)</button><button class="btn primary" data-action="open-intimacy" data-date="${dateStr}">记亲密(此日)</button></div>`;
-  if (startP) {
-    html += `<div class="actions"><button class="btn" data-action="edit-period" data-date="${dateStr}" data-id="${startP.id}">✏️ 修改本段经期</button><button class="btn danger" data-action="delete-period" data-id="${startP.id}">删除这条经期记录</button></div>`;
+  if (editTarget) {
+    html += `<div class="actions"><button class="btn" data-action="edit-period" data-date="${dateStr}" data-id="${editTarget.id}">✏️ 修改本段经期</button>`;
+    if (endedP) {
+      html += `<button class="btn" data-action="edit-period-end" data-id="${endedP.id}">✏️ 修改结束日</button>`;
+    }
+    html += `</div>`;
+    html += `<div class="actions"><button class="btn danger" data-action="delete-period" data-id="${editTarget.id}">删除这条经期记录</button></div>`;
   }
   html += `<div class="actions"><button class="btn ghost" data-action="close-modal">关闭</button></div>`;
   modal(html);
@@ -627,11 +655,37 @@ function deletePeriod(id) {
   save(); closeModal(); render(); toast('已删除该经期记录');
 }
 
+/* 修改已结束（或进行中）经期的结束日 */
+function openEndEditModal(id) {
+  const p = S.periods.find(x => x.id === id);
+  if (!p) return;
+  const d = p.end || todayKey();
+  const dur = diffDays(p.start, d) + 1;
+  modal(`<h2>修改结束日</h2>
+   <div class="field-note">正在修改从 ${fmtMD(p.start)} 开始的这段经期的结束日（当前共 ${dur} 天）。</div>
+   <div class="field"><label>结束日期</label><input type="date" id="eDate" value="${d}"></div>
+   <div class="actions"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn primary" data-action="save-end-edit" data-id="${p.id}">保存</button></div>`);
+}
+function saveEndEdit(id) {
+  const p = S.periods.find(x => x.id === id);
+  if (!p) return;
+  const d = document.getElementById('eDate').value;
+  if (!d) { toast('请选择日期'); return; }
+  if (d < p.start) { toast('结束日不能早于开始日（' + fmtMD(p.start) + '）'); return; }
+  /* 不能晚于下一段经期的开始日，避免两段重叠 */
+  const next = S.periods.find(x => x.start > p.start);
+  if (next && d >= next.start) { toast('结束日不能晚于下一段经期开始日（' + fmtMD(next.start) + '）'); return; }
+  p.end = d;
+  save(); closeModal(); render(); toast('已修改结束日为 ' + fmtMD(d));
+}
+
 /* ---------- 动作分发 ---------- */
 function doAction(a, el) {
   switch (a) {
     case 'open-period': openPeriodModal(el && el.dataset.date); break;
     case 'edit-period': openPeriodModal(el && el.dataset.date, el.dataset.id); break;
+    case 'edit-period-end': openEndEditModal(el.dataset.id); break;
+    case 'save-end-edit': saveEndEdit(el.dataset.id); break;
     case 'open-intimacy': openIntimacyModal(el && el.dataset.date); break;
     case 'save-period': savePeriod(); break;
     case 'save-intimacy': saveIntimacy(); break;
