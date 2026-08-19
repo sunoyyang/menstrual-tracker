@@ -551,14 +551,19 @@ function renderHabitTrend() {
 
 function renderStats() {
   const reg = regularity();
-  const next = predictNextStart(), ovu = ovulation(), fw = fertileWindow();
+  const hasRecords = S.periods.length > 0;
+  const next = hasRecords ? predictNextStart() : null;
+  const ovu = hasRecords ? ovulation() : null;
+  const fw = hasRecords ? fertileWindow() : [null, null];
+  const avgC = hasRecords ? avgCycle() : null;
+  const avgPL = hasRecords ? (avgPeriodLen() || S.settings.periodLen) : null;
   let html = `<div class="grid2">
-    <div class="stat"><div class="k">平均周期</div><div class="v">${avgCycle()}<small> 天</small></div></div>
+    <div class="stat"><div class="k">平均周期</div><div class="v">${avgC != null ? avgC + '<small> 天</small>' : '—'}</div></div>
     <div class="stat"><div class="k">规律度</div><div class="v">${reg.label}</div></div>
-    <div class="stat"><div class="k">下次经期(预测)</div><div class="v" style="font-size:15px">${fmtMD(next)}</div></div>
-    <div class="stat"><div class="k">排卵日(预测)</div><div class="v" style="font-size:15px">${fmtMD(ovu)}</div></div>
-    <div class="stat"><div class="k">易孕窗口</div><div class="v" style="font-size:13px">${fmtMD(fw[0])} ~ ${fmtMD(fw[1])}</div></div>
-    <div class="stat"><div class="k">平均经期长度</div><div class="v">${avgPeriodLen() || S.settings.periodLen}<small> 天</small></div></div>
+    <div class="stat"><div class="k">下次经期(预测)</div><div class="v" style="font-size:15px">${next ? fmtMD(next) : '—'}</div></div>
+    <div class="stat"><div class="k">排卵日(预测)</div><div class="v" style="font-size:15px">${ovu ? fmtMD(ovu) : '—'}</div></div>
+    <div class="stat"><div class="k">易孕窗口</div><div class="v" style="font-size:13px">${fw[0] ? fmtMD(fw[0]) + ' ~ ' + fmtMD(fw[1]) : '—'}</div></div>
+    <div class="stat"><div class="k">平均经期长度</div><div class="v">${avgPL != null ? avgPL + '<small> 天</small>' : '—'}</div></div>
   </div>`;
   html += renderHabitTrend();
   const ps = sortedPeriods();
