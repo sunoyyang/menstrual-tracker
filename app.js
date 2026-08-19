@@ -442,7 +442,7 @@ function renderToday() {
   const mini = last ? `上次经期：${fmtMD(last.start)}` : '';
   const healthHtml = healthExpanded
     ? renderHealth()
-    : `<div class="btn-row"><button class="btn" data-action="toggle-health">健康打卡</button></div>`;
+    : `<div class="btn-row"><button class="btn health" data-action="toggle-health">健康打卡</button></div>`;
   return `<div class="card status">
       <div class="phase">${phase}</div>
       ${countHtml}
@@ -451,7 +451,7 @@ function renderToday() {
     </div>
     ${mini ? `<div class="mini">${mini}</div>` : ''}
     <div class="btn-row">
-      <button class="btn" data-action="open-period">记经期</button>
+      <button class="btn period" data-action="open-period">记经期</button>
     </div>
     ${healthHtml}`;
 }
@@ -501,6 +501,51 @@ function renderCalendar() {
    ${ongoingPrompt}`;
 }
 
+/* 健康打卡趋势：近 30 天「刺激性饮食」与「运动分钟」双线 SVG 折线图 */
+function renderHabitTrend() {
+  const N = 30;
+  const t = todayKey();
+  const days = [];
+  for (let i = N - 1; i >= 0; i--) days.push(addDays(t, -i));
+  const map = {};
+  S.habits.forEach(h => { map[h.date] = h; });
+  const stim = days.map(d => { const h = map[d]; return h ? ((h.spicy || 0) + (h.hotTea || 0) + (h.icedTea || 0) + (h.hotCoffee || 0) + (h.icedCoffee || 0)) : 0; });
+  const ex = days.map(d => { const h = map[d]; return h && h.exercised ? (h.exerciseMin || 0) : 0; });
+  if (!stim.some(v => v > 0) && !ex.some(v => v > 0)) {
+    return `<div class="card chart-card"><h3>健康打卡趋势 <span class="h-section-sub">近 30 天</span></h3><div class="chart-empty">还没有健康打卡记录，去「今天」打卡后这里会显示趋势曲线。</div></div>`;
+  }
+  const W = 340, H = 150, padL = 24, padR = 8, padT = 12, padB = 22;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxV = Math.max(1, ...stim, ...ex);
+  const x = i => padL + (N === 1 ? plotW / 2 : i * plotW / (N - 1));
+  const y = v => padT + plotH * (1 - v / maxV);
+  const stimPts = stim.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+  const exPts = ex.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+  const gridY = [0, maxV / 2, maxV];
+  const gridLines = gridY.map(v => { const yy = y(v).toFixed(1); return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" class="chart-grid"/>`; }).join('');
+  const yLabels = gridY.map(v => `<text x="${padL - 4}" y="${(y(v) + 3).toFixed(1)}" class="chart-yl">${Math.round(v)}</text>`).join('');
+  const step = Math.ceil(N / 6);
+  let xLabels = '';
+  for (let i = 0; i < N; i += step) {
+    const d = parseKey(days[i]);
+    xLabels += `<text x="${x(i).toFixed(1)}" y="${H - 6}" class="chart-xl">${d.getMonth() + 1}/${d.getDate()}</text>`;
+  }
+  const stimDots = stim.map((v, i) => v > 0 ? `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.4" class="dot-stim"/>` : '').join('');
+  const exDots = ex.map((v, i) => v > 0 ? `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.4" class="dot-ex"/>` : '').join('');
+  const svg = `<svg viewBox="0 0 ${W} ${H}" class="chart-svg">
+    ${gridLines}${yLabels}
+    <polyline points="${stimPts}" class="line-stim"/>
+    <polyline points="${exPts}" class="line-ex"/>
+    ${stimDots}${exDots}
+    ${xLabels}
+  </svg>`;
+  return `<div class="card chart-card"><h3>健康打卡趋势 <span class="h-section-sub">近 30 天</span></h3>
+    <div class="chart-legend"><span class="lg lg-stim">刺激性饮食(辣/奶茶/咖啡)</span><span class="lg lg-ex">运动分钟</span></div>
+    ${svg}
+    <div class="chart-note">数值为每日辣/奶茶/咖啡合计（杯/份）与运动分钟，便于回顾饮食与运动节奏。</div>
+  </div>`;
+}
+
 function renderStats() {
   const reg = regularity();
   const next = predictNextStart(), ovu = ovulation(), fw = fertileWindow();
@@ -512,6 +557,7 @@ function renderStats() {
     <div class="stat"><div class="k">易孕窗口</div><div class="v" style="font-size:13px">${fmtMD(fw[0])} ~ ${fmtMD(fw[1])}</div></div>
     <div class="stat"><div class="k">平均经期长度</div><div class="v">${avgPeriodLen() || S.settings.periodLen}<small> 天</small></div></div>
   </div>`;
+  html += renderHabitTrend();
   const ps = sortedPeriods();
   if (ps.length) {
     html += `<div class="card"><h3>历史周期</h3>`;

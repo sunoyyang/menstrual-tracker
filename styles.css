@@ -41,6 +41,8 @@
   --blob1: #ff7ab0; --blob2: #9b7bff; --blob3: #5ab8ff; --blob-op: 0.5;
 }
 :root[data-theme="dark"] .brand { text-shadow: 0 1px 8px rgba(26,20,38,0.6), 0 0 20px rgba(255,122,176,0.2); }
+:root[data-theme="dark"] .btn.health { background: rgba(179,157,219,.20); color: #c9b6f0; border-color: rgba(179,157,219,.5); }
+:root[data-theme="dark"] .btn.health:active { background: rgba(179,157,219,.32); }
 :root[data-theme="dark"] .brand-sub { text-shadow: 0 1px 6px rgba(26,20,38,0.5); }
 /* 深色模式日历色块 — 稍提亮保证辨识度 */
 :root[data-theme="dark"] .day.fertile { background: rgba(155, 123, 255, 0.22); border-color: rgba(155, 123, 255, 0.35); }
@@ -264,7 +266,7 @@ body {
 .status .count { font-size: 40px; font-weight: 700; margin: 8px 0; }
 .status .count small { font-size: 14px; font-weight: 400; color: var(--ink-2); }
 
-.btn-row { display: flex; gap: 12px; margin-top: 6px; margin-bottom: 10px; }
+.btn-row { display: flex; gap: 12px; margin-top: 0; margin-bottom: 12px; }
 .btn {
   flex: 1; border: none; border-radius: 14px; padding: 15px 10px;
   font-size: 15px; font-weight: 600; cursor: pointer; background: var(--pink-soft); color: var(--pink-deep);
@@ -272,9 +274,13 @@ body {
 }
 .btn.primary { background: var(--pink); color: #fff; }
 .btn.ghost { background: var(--surface-2); color: var(--pink-deep); border: 1px solid var(--line); }
+/* 今日页两个主操作：粉色实心 = 记经期；淡紫描边 = 健康打卡，色相区分更清晰 */
+.btn.period { background: linear-gradient(135deg, #f48fb1, #ec6a98); color: #fff; box-shadow: 0 4px 14px rgba(236,106,152,.28); }
+.btn.health { background: rgba(179,157,219,.16); color: #7e57c2; border: 1px solid rgba(179,157,219,.42); }
+.btn.health:active { background: rgba(179,157,219,.26); }
 .btn:active { transform: scale(.98); }
 
-.mini { font-size: 13px; color: var(--ink-2); text-align: center; margin: 0 0 14px; padding-top: 12px; }
+.mini { font-size: 13px; color: var(--ink-2); text-align: center; margin: 2px 0 12px; padding-top: 0; }
 
 /* stat grid — 统一间距：内部 gap 与下方卡片间距一致 */
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
@@ -290,6 +296,30 @@ body {
 .stat .v { font-size: 20px; font-weight: 700; margin-top: 4px; color: var(--ink); }
 .stat .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
 .disclaimer { font-size: 11px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+
+/* 健康打卡趋势折线图 */
+.chart-card { margin-bottom: 14px; }
+.chart-card h3 { display: flex; align-items: baseline; gap: 6px; }
+.chart-legend { display: flex; gap: 16px; margin: 4px 0 8px; flex-wrap: wrap; }
+.chart-legend .lg { font-size: 11px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 5px; }
+.chart-legend .lg::before { content: ''; width: 12px; height: 3px; border-radius: 2px; }
+.chart-legend .lg-stim::before { background: var(--pink-deep); }
+.chart-legend .lg-ex::before { background: var(--purple); }
+.chart-svg { width: 100%; height: auto; display: block; }
+.chart-grid { stroke: rgba(156,136,170,.18); stroke-width: 1; }
+.chart-yl { fill: var(--ink-2); font-size: 8px; text-anchor: end; }
+.chart-xl { fill: var(--ink-2); font-size: 8px; text-anchor: middle; }
+.line-stim { fill: none; stroke: var(--pink-deep); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.line-ex { fill: none; stroke: var(--purple); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.dot-stim { fill: var(--pink-deep); }
+.dot-ex { fill: var(--purple); }
+.chart-note { font-size: 10px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+.chart-empty { font-size: 13px; color: var(--ink-2); text-align: center; padding: 26px 0; line-height: 1.6; }
+/* 深色模式下折线在暗底更清晰 */
+:root[data-theme="dark"] .line-stim { stroke: #ff9ec4; }
+:root[data-theme="dark"] .line-ex { stroke: #b39ddb; }
+:root[data-theme="dark"] .dot-stim { fill: #ff9ec4; }
+:root[data-theme="dark"] .dot-ex { fill: #b39ddb; }
 
 /* calendar */
 .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
