@@ -267,7 +267,7 @@ function healthAdvice(stats, p, h) {
   const all = [...today, ...stage, ...next, ...risk];
   const syms = [...new Set(all.filter(t => t.sym).reduce((a, t) => a.concat(t.sym.split('、')), []))].slice(0, 12);
   return {
-    today: today.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 3),
+    today: today.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 4),
     stage: stage.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 4),
     next: next.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 3),
     risk: risk.sort((a, b) => rank[a.lv] - rank[b.lv]).slice(0, 2),
