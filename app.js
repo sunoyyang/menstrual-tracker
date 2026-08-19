@@ -65,6 +65,12 @@ function avgCycle() {
   if (L.length >= 1) return Math.round(L.reduce((a, b) => a + b, 0) / L.length);
   return S.settings.avgCycle;
 }
+function avgPeriodLen() {
+  const ps = sortedPeriods().filter(p => p.end);
+  if (ps.length === 0) return null;
+  const sum = ps.reduce((a, p) => a + diffDays(p.start, p.end) + 1, 0);
+  return Math.round(sum / ps.length);
+}
 function regularity() {
   const L = cycleLengths();
   if (L.length < 2) return { label: '数据不足', cv: null };
@@ -487,6 +493,7 @@ function renderStats() {
     <div class="stat"><div class="k">下次经期(预测)</div><div class="v" style="font-size:15px">${fmtMD(next)}</div></div>
     <div class="stat"><div class="k">排卵日(预测)</div><div class="v" style="font-size:15px">${fmtMD(ovu)}</div></div>
     <div class="stat"><div class="k">易孕窗口</div><div class="v" style="font-size:13px">${fmtMD(fw[0])} ~ ${fmtMD(fw[1])}</div></div>
+    <div class="stat"><div class="k">平均经期长度</div><div class="v">${avgPeriodLen() || S.settings.periodLen}<small> 天</small></div></div>
   </div>`;
   const ps = sortedPeriods();
   if (ps.length) {
