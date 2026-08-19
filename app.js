@@ -340,6 +340,8 @@ let currentTab = 'today';
 let calMonth = new Date();
 let currentLocked = false;
 let healthExpanded = false;
+let deferredPrompt = null;   /* 浏览器 deferred 安装事件（安卓/桌面可触发原生弹窗） */
+let appInstalled = false;    /* 是否已安装为 PWA */
 
 /* 展示某天的过程记录卡片（今天页用） */
 function buildDailyCard(p, t) {
@@ -522,6 +524,30 @@ function renderStats() {
   return html;
 }
 
+function installCardHtml() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const isStandalone = navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  let inner;
+  if (isStandalone) {
+    inner = `<div class="install-done">✓ 已添加到主屏幕</div>`;
+  } else if (isIOS) {
+    inner = `<div class="disclaimer">iOS 暂不支持自动添加到主屏幕，请按以下步骤手动添加：</div>
+      <div class="install-steps">
+        <div class="step"><span class="step-n">1</span>点击底部工具栏的 <b>分享</b> 图标 <span class="ico-share">⤴</span></div>
+        <div class="step"><span class="step-n">2</span>在菜单中找到并点击 <b>“添加到主屏幕”</b></div>
+        <div class="step"><span class="step-n">3</span>点击右上角 <b>“添加”</b>，即可在桌面打开</div>
+      </div>`;
+  } else if (deferredPrompt) {
+    inner = `<div class="disclaimer">点击下方按钮，按提示将其安装为桌面应用（可离线使用、全屏运行）。</div>
+      <div class="actions"><button class="btn primary" data-action="install-app">安装到桌面</button></div>`;
+  } else {
+    inner = `<div class="disclaimer">当前浏览器可点击菜单中的「安装」或「添加到主屏幕」来添加到桌面。</div>`;
+  }
+  return `<div class="card install-card"><h3>安装到手机桌面</h3>${inner}</div>`;
+}
+
 function renderMe() {
   const st = S.settings;
   const li = Math.round((st.lightIntensity != null ? st.lightIntensity : 0.55) * 100);
@@ -555,6 +581,7 @@ function renderMe() {
     <div class="actions"><button class="btn" data-action="export">导出备份(JSON)</button><button class="btn" data-action="import">导入</button></div>
     <div class="actions"><button class="btn ghost" data-action="clear-data">清空所有数据</button></div>
   </div>
+  ${installCardHtml()}
   <div class="card about-card">
     <h3>关于本 Web 应用</h3>
     <div class="about-dev">
@@ -916,6 +943,7 @@ function doAction(a, el) {
       if (confirm('确定清空所有数据？不可恢复')) { S = defaults(); save(); render(); toast('已清空'); }
       break;
     case 'close-modal': closeModal(); break;
+    case 'install-app': installApp(); break;
   }
 }
 
@@ -963,6 +991,18 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
 }
 
+/* ---------- 安装到桌面（PWA） ---------- */
+async function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try {
+    const choice = await deferredPrompt.userChoice;
+    if (choice && choice.outcome === 'accepted') toast('已安装到桌面');
+  } catch (e) { /* 用户取消或浏览器拦截 */ }
+  deferredPrompt = null;
+  render();
+}
+
 /* ---------- 主题 ---------- */
 function applyTheme() {
   const t = (S.settings && S.settings.theme) || 'light';
@@ -986,3 +1026,15 @@ if (hdr && wrap) {
   onScroll();
 }
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }
+
+/* 捕获浏览器 deferred 安装事件，用于「安装到桌面」按钮（安卓/桌面 Chrome、Edge 等） */
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (currentTab === 'me') render();
+});
+window.addEventListener('appinstalled', () => {
+  appInstalled = true;
+  deferredPrompt = null;
+  if (currentTab === 'me') render();
+});

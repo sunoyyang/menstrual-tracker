@@ -215,6 +215,15 @@ body {
 
 .me-foot { text-align: center; font-size: 11px; color: var(--ink-2); margin: 6px 0 8px; padding: 0 16px; line-height: 1.6; }
 
+/* 「我的」页 — 安装到手机桌面 */
+.install-card .install-done { font-size: 14px; font-weight: 600; color: var(--pink-deep); padding: 4px 0; }
+.install-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.install-steps .step { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--ink); line-height: 1.5; }
+.install-steps .step-n { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--pink); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.install-steps .step b { color: var(--pink-deep); }
+.install-steps .ico-share { font-size: 14px; color: var(--pink-deep); }
+.install-card .actions { margin-top: 10px; }
+
 /* 「我的」页 — 关于本 Web 应用 */
 .about-dev { display: flex; align-items: center; gap: 12px; }
 .about-avatar { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--glass-border); font-size: 26px; flex-shrink: 0; }
