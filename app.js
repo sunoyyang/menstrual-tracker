@@ -564,14 +564,13 @@ function renderStats() {
     html += `<div class="card"><h3>历史周期</h3>`;
     [...ps].reverse().slice(0, 12).forEach(p => {
       const len = p.end ? diffDays(p.start, p.end) + 1 : null;
-      const sym = (p.symptoms && p.symptoms.length) ? ' · ' + esc(p.symptoms.join('/')) : '';
       /* 每日过程记录：先以「开始日」合成第 1 天，再并入手动补的过程记录，按日期排序，避免首日缺失 */
       const dmap = new Map();
       if (Array.isArray(p.daily)) p.daily.forEach(d => dmap.set(d.date, d));
       if (!dmap.has(p.start)) dmap.set(p.start, { date: p.start, flow: p.flow, pain: p.pain, symptoms: p.symptoms, mood: p.mood, abnormal: p.abnormal, note: p.note, synthetic: true });
       const dailyList = [...dmap.values()].sort((a, b) => a.date.localeCompare(b.date));
       const dailyTag = dailyList.length ? ` <small style="color:var(--purple)">(${dailyList.length}天过程)</small>` : '';
-      html += `<div class="row"><span class="label">${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : '（进行中）'}</span><span class="val">${p.flow || ''}${sym} ${len ? len + '天' : ''}${dailyTag}</span></div>`;
+      html += `<div class="row"><span class="label">${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : '（进行中）'}</span><span class="val">${len ? len + '天' : ''}${dailyTag}</span></div>`;
       /* 每日过程记录摘要：始终先列出「第 1 天（开始日）」，便于单独回顾首日情况 */
       html += `<div class="daily-summary">`;
       dailyList.forEach(dr => {
