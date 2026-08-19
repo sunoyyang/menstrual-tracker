@@ -375,7 +375,7 @@ function buildDailyCard(p, t) {
 function renderToday() {
   const t = todayKey();
   const p = periodAt(t);
-  const hasCycle = cycleLengths().length >= 1;   // 至少 2 次记录才有真实周期，才推算下次/排卵
+  const hasRecords = S.periods.length > 0;   // 只要有 ≥1 次经期开始记录，即可按标准周期/黄体期推算下次与排卵
   let phase, countHtml, sub, dailyHtml = '';
   if (p) {
     const start = p.start;
@@ -383,7 +383,7 @@ function renderToday() {
     if (p.end) {
       /* 经期已结束（今天为结束日）：显示本经期天数 + 距下次预测经期 */
       const dur = diffDays(start, p.end) + 1;
-      const toNextTxt = hasCycle ? ` · 距离下次预测经期开始还有 ${diffDays(t, predictNextStart())} 天` : '';
+      const toNextTxt = hasRecords ? ` · 距离下次预测经期开始还有 ${diffDays(t, predictNextStart())} 天` : '';
       phase = '月经期';
       countHtml = `<div class="count"><small>第</small>${dur}<small>天</small></div>`;
       sub = `本经期 ${dur} 天${toNextTxt}`;
@@ -413,7 +413,7 @@ function renderToday() {
     if (lp && lp.end && t > lp.end) {
       /* 本段经期刚结束（今天在结束日之后）：展示经期天数 + 距下次预测经期开始 */
       const dur = diffDays(lp.start, lp.end) + 1;
-      const toNextTxt = hasCycle ? ` · 距离下次预测经期开始还有 ${diffDays(t, predictNextStart())} 天` : '';
+      const toNextTxt = hasRecords ? ` · 距离下次预测经期开始还有 ${diffDays(t, predictNextStart())} 天` : '';
       phase = '月经期';
       countHtml = `<div class="count">${dur}<small> 天</small></div>`;
       sub = `本经期 ${dur} 天${toNextTxt}`;
@@ -421,7 +421,8 @@ function renderToday() {
       phase = '待记录';
       countHtml = '';
       sub = '还没有经期记录，点下方按钮开始';
-    } else if (hasCycle) {
+    } else {
+      /* 已有 ≥1 次经期记录：按标准周期(默认28天)与黄体期(默认14天)推算下次经期与排卵 */
       const next = predictNextStart(), ovu = ovulation();
       const toNext = diffDays(t, next), toOvu = diffDays(t, ovu);
       phase = phaseInfo(t).phase;
@@ -436,11 +437,6 @@ function renderToday() {
         countHtml = `<div class="count" style="color:var(--amber)">${-toNext}<small> 天</small></div>`;
         sub = `已逾期 ${-toNext} 天，记得记录经期`;
       }
-    } else {
-      /* 已有记录但不足 2 次，无法推算真实周期：给出提示，不显示默认推算值 */
-      phase = '待推算';
-      countHtml = '';
-      sub = '记录更多经期后，将自动推算下次经期与排卵期';
     }
   }
   const last = sortedPeriods().slice(-1)[0];
@@ -467,9 +463,9 @@ function renderCalendar() {
   const startDow = (first.getDay() + 6) % 7;
   const daysInMon = new Date(y, m + 1, 0).getDate();
   const set = periodDaySet();
-  const hasCycle = cycleLengths().length >= 1;   // 至少 2 次记录才有真实周期，才推算排卵/易孕
-  const ovu = hasCycle ? ovulation() : null;
-  const fw = hasCycle ? fertileWindow() : [null, null];
+  const hasRecords = S.periods.length > 0;       // 只要有经期开始记录即可按标准周期/黄体期推算排卵/易孕
+  const ovu = hasRecords ? ovulation() : null;
+  const fw = hasRecords ? fertileWindow() : [null, null];
   const lp = latestPeriod();
   const lpEndEst = lp ? periodEndEst(lp) : null;
   const t = todayKey();
@@ -486,8 +482,8 @@ function renderCalendar() {
     let cls = 'day';
     if (set.has(ds)) cls += ' period';
     else if (lp && !lp.end && ds > lp.start && ds <= lpEndEst) cls += ' period-pred';
-    else if (hasCycle && ds >= fw[0] && ds <= fw[1]) cls += ' fertile';
-    if (hasCycle && ds === ovu) cls += ' ovu';
+    else if (hasRecords && ds >= fw[0] && ds <= fw[1]) cls += ' fertile';
+    if (hasRecords && ds === ovu) cls += ' ovu';
     if (ds === t) cls += ' today';
     const hasProc = procSet.has(ds);
     const isStart = startSet.has(ds);
@@ -558,12 +554,13 @@ function renderStats() {
   const periods = S.periods;
   const hasRecords = periods.length > 0;
   const cycleLens = cycleLengths();
-  const hasCycle = cycleLens.length >= 1;                 // 至少 2 次记录才有真实周期长度
+  const hasCycle = cycleLens.length >= 1;                 // 至少 2 次记录才有真实「平均周期」可统计
   const hasEnded = periods.some(p => p.end);              // 至少 1 个已结束经期才有真实经期长度
-  /* 所有推算均须基于使用者登记的经期数据；数据不足时不回退默认值，统一显示「暂无数据」 */
-  const next = hasCycle ? predictNextStart() : null;
-  const ovu = hasCycle ? ovulation() : null;
-  const fw = hasCycle ? fertileWindow() : [null, null];
+  /* 下一次经期 / 排卵日 / 易孕窗口：只要有 ≥1 次经期开始记录，即可按标准周期(默认28天)与黄体期(默认14天)推算；
+     平均周期、平均经期长度属用户自身数据统计，须有足够记录才显示，否则「暂无数据」 */
+  const next = hasRecords ? predictNextStart() : null;
+  const ovu = hasRecords ? ovulation() : null;
+  const fw = hasRecords ? fertileWindow() : [null, null];
   const avgC = hasCycle ? avgCycle() : null;
   const avgPL = hasEnded ? avgPeriodLen() : null;
   let html = `<div class="grid2">
