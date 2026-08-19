@@ -564,19 +564,24 @@ function renderStats() {
     [...ps].reverse().slice(0, 12).forEach(p => {
       const len = p.end ? diffDays(p.start, p.end) + 1 : null;
       const sym = (p.symptoms && p.symptoms.length) ? ' · ' + esc(p.symptoms.join('/')) : '';
-      const dailyCnt = Array.isArray(p.daily) ? p.daily.length : 0;
-      const dailyTag = dailyCnt > 0 ? ` <small style="color:var(--purple)">(${dailyCnt}天过程)</small>` : '';
+      /* 每日过程记录：先以「开始日」合成第 1 天，再并入手动补的过程记录，按日期排序，避免首日缺失 */
+      const dmap = new Map();
+      if (Array.isArray(p.daily)) p.daily.forEach(d => dmap.set(d.date, d));
+      if (!dmap.has(p.start)) dmap.set(p.start, { date: p.start, flow: p.flow, symptoms: p.symptoms, mood: p.mood, abnormal: p.abnormal, note: p.note, synthetic: true });
+      const dailyList = [...dmap.values()].sort((a, b) => a.date.localeCompare(b.date));
+      const dailyTag = dailyList.length ? ` <small style="color:var(--purple)">(${dailyList.length}天过程)</small>` : '';
       html += `<div class="row"><span class="label">${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : '（进行中）'}</span><span class="val">${p.flow || ''}${sym} ${len ? len + '天' : ''}${dailyTag}</span></div>`;
-      /* 展示每日过程记录摘要（折叠式） */
-      if (Array.isArray(p.daily) && p.daily.length > 0) {
-        html += `<div class="daily-summary">`;
-        p.daily.forEach(dr => {
-          const dn = diffDays(p.start, dr.date) + 1;
-          const dsym = dr.symptoms && dr.symptoms.length ? ' · ' + esc(dr.symptoms.join('/')) : '';
-          html += `<div class="row sub-row"><span class="label">第${dn}天 ${fmtMD(dr.date)}</span><span class="val">${dr.flow || ''}${dsym} ${dr.mood || ''}</span></div>`;
-        });
-        html += `</div>`;
-      }
+      /* 每日过程记录摘要：始终先列出「第 1 天（开始日）」，便于单独回顾首日情况 */
+      html += `<div class="daily-summary">`;
+      dailyList.forEach(dr => {
+        const dn = diffDays(p.start, dr.date) + 1;
+        const dsym = dr.symptoms && dr.symptoms.length ? ' · ' + esc(dr.symptoms.join('/')) : '';
+        const dmood = dr.mood ? ' · ' + esc(dr.mood) : '';
+        const dabn = dr.abnormal ? ' · ' + esc(dr.abnormal) : '';
+        const tag = (dn === 1) ? ' <small class="day1-tag">首日</small>' : '';
+        html += `<div class="row sub-row"><span class="label">第${dn}天 ${fmtMD(dr.date)}${tag}</span><span class="val">${dr.flow || ''}${dsym}${dmood}${dabn}</span></div>`;
+      });
+      html += `</div>`;
     });
     html += `</div>`;
   } else {
