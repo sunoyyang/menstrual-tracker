@@ -527,7 +527,7 @@ function renderMe() {
   const li = Math.round((st.lightIntensity != null ? st.lightIntensity : 0.55) * 100);
   return `<div class="me-hero">
     <div class="avatar">🌸</div>
-    <div class="me-name">经期小记</div>
+    <div class="me-name">肚小肚·经期小记</div>
     <div class="me-sub">Yyy 设计开发 · 纯净私密本地记录</div>
   </div>
   <div class="card"><h3>外观</h3>
@@ -565,9 +565,9 @@ function renderMe() {
         <a class="about-link" href="https://github.com/sunoyyang" target="_blank" rel="noopener">前往 GitHub 主页 ↗</a>
       </div>
     </div>
-    <div class="about-desc">经期小记 · 一款纯净私密的本地经期记录工具，数据仅保存在你的本机浏览器，不上传任何服务器。</div>
+    <div class="about-desc">肚小肚·经期小记 · 一款纯净私密的本地经期记录工具，数据仅保存在你的本机浏览器，不上传任何服务器。</div>
   </div>
-  <div class="me-foot">经期小记 v0.2 · 所有预测均为参考值，如有健康疑问请咨询医生。</div>`;
+  <div class="me-foot">肚小肚·经期小记 v1.2 · 所有预测均为参考值，如有健康疑问请咨询医生。</div>`;
 }
 
 function render() {
