@@ -274,7 +274,7 @@ body {
 .btn.ghost { background: var(--surface-2); color: var(--pink-deep); border: 1px solid var(--line); }
 .btn:active { transform: scale(.98); }
 
-.mini { font-size: 13px; color: var(--ink-2); text-align: center; margin: 0 0 14px; padding-top: 12px; border-top: 1px solid var(--glass-border); }
+.mini { font-size: 13px; color: var(--ink-2); text-align: center; margin: 0 0 14px; padding-top: 12px; }
 
 /* stat grid — 统一间距：内部 gap 与下方卡片间距一致 */
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
