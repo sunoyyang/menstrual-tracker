@@ -367,6 +367,7 @@ function buildDailyCard(p, t) {
   return `<div class="today-daily">
     <span class="td-flow">${todayRec.flow || ''}</span>
     ${dsym ? `<span class="td-sym">${esc(dsym)}</span>` : ''}
+    ${todayRec.pain ? `<span class="td-pain">· 痛经:${esc(todayRec.pain)}</span>` : ''}
     ${todayRec.mood ? `<span class="td-mood">· ${todayRec.mood}</span>` : ''}
   </div>`;
 }
@@ -567,7 +568,7 @@ function renderStats() {
       /* 每日过程记录：先以「开始日」合成第 1 天，再并入手动补的过程记录，按日期排序，避免首日缺失 */
       const dmap = new Map();
       if (Array.isArray(p.daily)) p.daily.forEach(d => dmap.set(d.date, d));
-      if (!dmap.has(p.start)) dmap.set(p.start, { date: p.start, flow: p.flow, symptoms: p.symptoms, mood: p.mood, abnormal: p.abnormal, note: p.note, synthetic: true });
+      if (!dmap.has(p.start)) dmap.set(p.start, { date: p.start, flow: p.flow, pain: p.pain, symptoms: p.symptoms, mood: p.mood, abnormal: p.abnormal, note: p.note, synthetic: true });
       const dailyList = [...dmap.values()].sort((a, b) => a.date.localeCompare(b.date));
       const dailyTag = dailyList.length ? ` <small style="color:var(--purple)">(${dailyList.length}天过程)</small>` : '';
       html += `<div class="row"><span class="label">${fmtMD(p.start)}${p.end ? ' ~ ' + fmtMD(p.end) : '（进行中）'}</span><span class="val">${p.flow || ''}${sym} ${len ? len + '天' : ''}${dailyTag}</span></div>`;
@@ -577,9 +578,10 @@ function renderStats() {
         const dn = diffDays(p.start, dr.date) + 1;
         const dsym = dr.symptoms && dr.symptoms.length ? ' · ' + esc(dr.symptoms.join('/')) : '';
         const dmood = dr.mood ? ' · ' + esc(dr.mood) : '';
+        const dpain = dr.pain ? ' · 痛经:' + esc(dr.pain) : '';
         const dabn = dr.abnormal ? ' · ' + esc(dr.abnormal) : '';
         const tag = (dn === 1) ? ' <small class="day1-tag">首日</small>' : '';
-        html += `<div class="row sub-row"><span class="label">第${dn}天 ${fmtMD(dr.date)}${tag}</span><span class="val">${dr.flow || ''}${dsym}${dmood}${dabn}</span></div>`;
+        html += `<div class="row sub-row"><span class="label">第${dn}天 ${fmtMD(dr.date)}${tag}</span><span class="val">${dr.flow || ''}${dsym}${dpain}${dmood}${dabn}</span></div>`;
       });
       html += `</div>`;
     });
@@ -700,8 +702,9 @@ function openPeriodModal(prefill, editId) {
   const editing = !!editId;
   const ep = editing ? S.periods.find(p => p.id === editId) : null;
   const d = editing ? ep.start : (prefill || todayKey());
-  const flowOpts = ['少', '中', '多'];
-  const symOpts = ['腰酸', '乳房胀痛', '腹痛', '头痛', '乏力', '情绪波动'];
+  const flowOpts = ['非常少量', '少量', '中量', '大量', '非常大量'];
+  const painOpts = ['完全不痛', '轻微痛', '比较痛', '非常痛', '极致疼痛'];
+  const symOpts = ['没有症状', '腰酸', '乳房胀痛', '腹痛', '头痛', '乏力', '情绪波动', '腹泻', '小腹坠胀', '眩晕', '失眠', '粉刺', '皮肤干燥', '食欲不佳', '疲惫', '便秘', '贪冷饮'];
   const moodOpts = ['开心', '平静', '焦虑', '低落', '易怒'];
   /* 进行中的经期（编辑自身时排除自己） */
   const active = [...S.periods].reverse().find(p => !p.end && p.id !== editId);
@@ -720,7 +723,8 @@ function openPeriodModal(prefill, editId) {
   let note = '';
   if (editing) note = `<div class="field-note">正在修改从 ${fmtMD(ep.start)} 开始的这段经期，可调整开始日与经量/症状/心情。</div>`;
   else if (active) note = `<div class="field-note">已有进行中的经期（${fmtMD(active.start)} 起）。点「修改开始日」可更正本轮的开始日；或用「过程记录」补充每日、「结束本次」收尾。</div>`;
-  const flowOn = (v) => (ep && ep.flow === v) || (!ep && v === '中') ? ' on' : '';
+  const flowOn = (v) => (ep && ep.flow === v) ? ' on' : '';
+  const painOn = (v) => (ep && ep.pain === v) ? ' on' : '';
   const symOn = (s) => (ep && ep.symptoms && ep.symptoms.includes(s)) ? ' on' : '';
   const moodOn = (mm) => (ep && ep.mood === mm) ? ' on' : '';
   modal(`<h2>${title}</h2>
@@ -728,8 +732,10 @@ function openPeriodModal(prefill, editId) {
    ${note}
    <div class="field date-field" id="pDateWrap"><label id="pDateLabel">${initDateLabel}</label><input type="date" id="pDate" value="${d}"></div>
    ${dayHint}
-   <div class="field" id="pFlowWrap"><label>经量</label><div class="chips" id="pFlow">
+   <div class="field" id="pFlowWrap"><label>流量</label><div class="chips" id="pFlow">
      ${flowOpts.map(f => `<div class="chip${flowOn(f)}" data-v="${f}">${f}</div>`).join('')}</div></div>
+   <div class="field"><label>痛经</label><div class="chips" id="pPain">
+     ${painOpts.map(p => `<div class="chip${painOn(p)}" data-v="${p}">${p}</div>`).join('')}</div></div>
    <div class="field"><label>症状（可多选）</label><div class="chips" id="pSym">
      ${symOpts.map(s => `<div class="chip${symOn(s)}" data-v="${s}">${s}</div>`).join('')}</div></div>
    <div class="field"><label>心情</label><div class="chips" id="pMood">
@@ -737,7 +743,7 @@ function openPeriodModal(prefill, editId) {
    <div class="field"><label>异常备注（如白带异常/血块）</label><input id="pAbn" value="${ep && ep.abnormal ? esc(ep.abnormal) : ''}" placeholder="选填"></div>
    <div class="field"><label>备注</label><textarea id="pNote" placeholder="选填">${ep && ep.note ? esc(ep.note) : ''}</textarea></div>
    <div class="actions"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn primary" data-action="save-period">保存</button></div>`);
-  bindChips('#pFlow', true); bindChips('#pSym'); bindChips('#pMood', true);
+  bindChips('#pFlow', true); bindChips('#pPain', true); bindChips('#pSym'); bindChips('#pMood', true);
   const pType = document.getElementById('pType');
   if (pType && !editing) {
     pType.addEventListener('click', (e) => {
@@ -794,7 +800,8 @@ function savePeriod() {
     /* 日期必须在经期范围内 */
     if (date < active.start) { toast('记录日期不能早于经期开始日'); return; }
     if (active.end && date > active.end) { toast('记录日期不能晚于经期结束日'); return; }
-    const flow = getChips('#pFlow')[0] || '中';
+    const flow = getChips('#pFlow')[0] || '';
+    const pain = getChips('#pPain')[0] || '';
     const sym = getChips('#pSym');
     const mood = getChips('#pMood')[0] || '';
     const abn = document.getElementById('pAbn').value.trim();
@@ -803,7 +810,7 @@ function savePeriod() {
     if (!Array.isArray(active.daily)) active.daily = [];
     /* 移除同日期旧记录（简单覆盖） */
     active.daily = active.daily.filter(r => r.date !== date);
-    active.daily.push({ date, flow, symptoms: sym, abnormal: abn, mood, note });
+    active.daily.push({ date, flow, pain, symptoms: sym, abnormal: abn, mood, note });
     active.daily.sort((a, b) => a.date.localeCompare(b.date));
     save(); closeModal(); render();
     const dayNum = diffDays(active.start, date) + 1;
@@ -821,12 +828,13 @@ function savePeriod() {
     const overlap = S.periods.find(p => p.id !== editingPeriodId && date >= p.start && date <= (p.end || date));
     if (overlap) { toast('该日期在其它经期（' + fmtMD(overlap.start) + (overlap.end ? ' ~ ' + fmtMD(overlap.end) : '') + '）范围内'); return; }
     if (ep.end && date > ep.end) { toast('开始日不能晚于结束日'); return; }
-    const flow = getChips('#pFlow')[0] || '中';
+    const flow = getChips('#pFlow')[0] || '';
+    const pain = getChips('#pPain')[0] || '';
     const sym = getChips('#pSym');
     const mood = getChips('#pMood')[0] || '';
     const abn = document.getElementById('pAbn').value.trim();
     const note = document.getElementById('pNote').value.trim();
-    ep.start = date; ep.flow = flow; ep.symptoms = sym; ep.mood = mood; ep.abnormal = abn; ep.note = note;
+    ep.start = date; ep.flow = flow; ep.pain = pain; ep.symptoms = sym; ep.mood = mood; ep.abnormal = abn; ep.note = note;
     /* 开始日改动后，移除早于新开始日的过程记录，保持数据一致 */
     if (Array.isArray(ep.daily)) ep.daily = ep.daily.filter(r => r.date >= date);
     editingPeriodId = null;
@@ -840,7 +848,8 @@ function savePeriod() {
     return;
   }
   const date = document.getElementById('pDate').value;
-  const flow = getChips('#pFlow')[0] || '中';
+  const flow = getChips('#pFlow')[0] || '';
+  const pain = getChips('#pPain')[0] || '';
   const sym = getChips('#pSym');
   const mood = getChips('#pMood')[0] || '';
   const abn = document.getElementById('pAbn').value.trim();
@@ -848,7 +857,7 @@ function savePeriod() {
   if (S.periods.some(p => p.start === date)) { toast('该日已有经期记录'); return; }
   const overlap = S.periods.find(p => date >= p.start && date <= (p.end || date));
   if (overlap) { toast('该日期在已有经期（' + fmtMD(overlap.start) + (overlap.end ? ' ~ ' + fmtMD(overlap.end) : '') + '）范围内，不能重复开始'); return; }
-  S.periods.push({ id: uid(), start: date, end: null, flow, symptoms: sym, abnormal: abn, mood, note, daily: [] });
+  S.periods.push({ id: uid(), start: date, end: null, flow, pain, symptoms: sym, abnormal: abn, mood, note, daily: [] });
   save(); closeModal(); render(); toast('已保存');
 }
 
@@ -864,7 +873,7 @@ function openDaySheet(dateStr) {
     if (isStart) {
       /* 经期开始日：展示主记录 */
       let tag = '🌸 经期开始';
-      rows.push(`<div class="row"><span class="label"><b>${tag}</b> · 第 ${dayNum} 天</span><span class="val">${p.flow || ''} ${p.symptoms && p.symptoms.length ? '· ' + p.symptoms.join('/') : ''}</span></div>`);
+      rows.push(`<div class="row"><span class="label"><b>${tag}</b> · 第 ${dayNum} 天</span><span class="val">${p.flow || ''}${p.pain ? ' · 痛经:' + p.pain : ''} ${p.symptoms && p.symptoms.length ? '· ' + p.symptoms.join('/') : ''}</span></div>`);
       if (p.mood) rows.push(`<div class="row"><span class="label">心情</span><span class="val">${p.mood}</span></div>`);
       if (p.abnormal) rows.push(`<div class="row"><span class="label">异常</span><span class="val">${esc(p.abnormal)}</span></div>`);
       if (p.note) rows.push(`<div class="row"><span class="label">备注</span><span class="val">${esc(p.note)}</span></div>`);
@@ -874,7 +883,7 @@ function openDaySheet(dateStr) {
       /* 经期过程日 */
       if (daily.length) {
         daily.forEach(dr => {
-          rows.push(`<div class="row"><span class="label"><b>📝 经期过程</b> · 第 ${dayNum} 天</span><span class="val">${dr.flow || ''} ${dr.symptoms && dr.symptoms.length ? '· ' + dr.symptoms.join('/') : ''}</span></div>`);
+          rows.push(`<div class="row"><span class="label"><b>📝 经期过程</b> · 第 ${dayNum} 天</span><span class="val">${dr.flow || ''}${dr.pain ? ' · 痛经:' + dr.pain : ''} ${dr.symptoms && dr.symptoms.length ? '· ' + dr.symptoms.join('/') : ''}</span></div>`);
           if (dr.mood) rows.push(`<div class="row"><span class="label">心情</span><span class="val">${dr.mood}</span></div>`);
           if (dr.abnormal) rows.push(`<div class="row"><span class="label">异常</span><span class="val">${esc(dr.abnormal)}</span></div>`);
           if (dr.note) rows.push(`<div class="row"><span class="label">备注</span><span class="val">${esc(dr.note)}</span></div>`);
