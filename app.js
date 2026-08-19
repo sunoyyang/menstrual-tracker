@@ -385,7 +385,7 @@ function renderToday() {
       const next = predictNextStart();
       const toNext = diffDays(t, next);
       phase = '月经期';
-      countHtml = `<div class="count">${dur}<small> 天</small></div>`;
+      countHtml = `<div class="count"><small>第</small>${dur}<small>天</small></div>`;
       sub = `本经期 ${dur} 天 · 距离下次预测经期开始还有 ${toNext} 天`;
       dailyHtml = buildDailyCard(p, t);
     } else {
@@ -395,7 +395,7 @@ function renderToday() {
         : toEnd === 0 ? '今天是经期最后一天'
         : `经期已结束 ${-toEnd} 天，记得记录结束日`;
       phase = '月经期';
-      countHtml = `<div class="count">${d}<small> 天</small></div>`;
+      countHtml = `<div class="count"><small>第</small>${d}<small>天</small></div>`;
       sub = `${endMsg} · 当前第 ${d} 天`;
       dailyHtml = buildDailyCard(p, t);
     }
