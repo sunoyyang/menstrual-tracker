@@ -132,7 +132,7 @@ function phaseInfo(dateStr) {
 /* ---------- 经期健康习惯（打卡 + 统计 + 权威建议） ---------- */
 function ensureTodayHabit() {
   let h = S.habits.find(x => x.date === todayKey());
-  if (!h) { h = { date: todayKey(), spicy: 0, hotTea: 0, icedTea: 0, exercised: false, exerciseMin: 0 }; S.habits.push(h); }
+  if (!h) { h = { date: todayKey(), spicy: 0, hotTea: 0, icedTea: 0, hotCoffee: 0, icedCoffee: 0, exercised: false, exerciseMin: 0 }; S.habits.push(h); }
   return h;
 }
 function bumpHabit(k, delta) {
@@ -141,7 +141,7 @@ function bumpHabit(k, delta) {
   if (v < 0) v = 0;
   h[k] = v;
   save(); render();
-  const map = { spicy: ['吃辣', '份'], hotTea: ['热奶茶', '杯'], icedTea: ['冰奶茶', '杯'], exerciseMin: ['运动', '分钟'] };
+  const map = { spicy: ['吃辣', '份'], hotTea: ['热奶茶', '杯'], icedTea: ['冰奶茶', '杯'], hotCoffee: ['热咖啡', '杯'], icedCoffee: ['冰咖啡', '杯'], exerciseMin: ['运动', '分钟'] };
   const m = map[k] || [k, ''];
   toast(m[0] + ' ' + v + m[1]);
 }
@@ -165,14 +165,15 @@ function setHabitNum(k, raw) {
 function periodHabitStats(p) {
   if (!p) return null;
   const [s, e] = periodSpan(p);
-  let spicy = 0, hotTea = 0, icedTea = 0, exDays = 0, exMin = 0;
+  let spicy = 0, hotTea = 0, icedTea = 0, hotCoffee = 0, icedCoffee = 0, exDays = 0, exMin = 0;
   S.habits.forEach(h => {
     if (h.date >= s && h.date <= e) {
       spicy += h.spicy || 0; hotTea += h.hotTea || 0; icedTea += h.icedTea || 0;
+      hotCoffee += h.hotCoffee || 0; icedCoffee += h.icedCoffee || 0;
       if (h.exercised) { exDays++; exMin += h.exerciseMin || 0; }
     }
   });
-  return { spicy, hotTea, icedTea, exDays, exMin, start: s, end: e, days: diffDays(s, e) + 1 };
+  return { spicy, hotTea, icedTea, hotCoffee, icedCoffee, exDays, exMin, start: s, end: e, days: diffDays(s, e) + 1 };
 }
 /* 本期是否含痛经（腹痛）症状 */
 function periodHasCramp(p) {
@@ -186,7 +187,7 @@ function periodHasCramp(p) {
 function healthAdvice(stats, p, h) {
   const today = [], stage = [], next = [], risk = [];
   const cramp = periodHasCramp(p);
-  const totalCaffeine = (stats.icedTea || 0) + (stats.hotTea || 0);
+  const totalCaffeine = (stats.icedTea || 0) + (stats.hotTea || 0) + (stats.icedCoffee || 0) + (stats.hotCoffee || 0);
   const t = todayKey();
   const ended = p && p.end && p.end < t; // 经期已结束
   const avgDays = stats.days || 1;
@@ -196,6 +197,9 @@ function healthAdvice(stats, p, h) {
   if (h.spicy > 0) today.push({ lv: 'warn', t: '今日吃辣提醒', d: `今天已记录 ${h.spicy} 份辣。辛辣促进前列腺素分泌，可能刺激子宫痉挛和肠胃。`, sym: '子宫痉挛痛、胃灼热、腹泻' });
   if (h.hotTea > 0) today.push({ lv: 'info', t: '今日热奶茶提醒', d: `今天已记录 ${h.hotTea} 杯热奶茶。咖啡因 + 高糖可能导致入睡困难、情绪波动。`, sym: '失眠、烦躁、乳房胀痛' });
   if (h.icedTea > 0 && h.spicy > 0) today.push({ lv: 'warn', t: '今日双重刺激', d: '冰奶茶 + 辣同时摄入，生冷与辛辣叠加，是经期不适的高风险组合。建议今晚喝温水、避免再进食生冷辛辣。', sym: '腹痛、腹泻、痛经加重' });
+  if (h.icedCoffee > 0) today.push({ lv: 'warn', t: '今日冰咖啡提醒', d: `今天已记录 ${h.icedCoffee} 杯冰咖啡。冰镇 + 咖啡因叠加，寒冷刺激血管收缩、咖啡因兴奋神经，敏感人群容易出现小腹冷痛、头痛或痛经加重。`, sym: '小腹冷痛、头痛、痛经加重' });
+  if (h.hotCoffee > 0) today.push({ lv: 'info', t: '今日热咖啡提醒', d: `今天已记录 ${h.hotCoffee} 杯热咖啡。咖啡因可能刺激胃酸分泌、影响夜间睡眠、加重焦虑或乳房胀痛。`, sym: '失眠、心悸、焦虑、乳房胀痛' });
+  if (h.icedCoffee > 0 && h.spicy > 0) today.push({ lv: 'warn', t: '今日双重刺激', d: '冰咖啡 + 辣同时摄入，寒冷与辛辣叠加是经期不适的高风险组合。建议今晚喝温水、避免再进食生冷辛辣。', sym: '腹痛、腹泻、痛经加重' });
   if (h.exercised && (h.exerciseMin || 0) > 0) {
     const min = h.exerciseMin;
     if (min >= 45 && min <= 90) today.push({ lv: 'good', t: '今日运动适量', d: `已记录 ${min} 分钟运动，这个时长对缓解经期不适比较理想。`, sym: '' });
@@ -209,13 +213,18 @@ function healthAdvice(stats, p, h) {
   if (stats.icedTea >= 3) stage.push({ lv: 'warn', t: '冰奶茶摄入偏高', d: `本经期已喝 ${stats.icedTea} 杯冰奶茶（${avgDays} 天），处于较高水平，建议明显减少。`, sym: '小腹冷痛、腹泻、痛经加重' });
   else if (stats.icedTea >= 2) stage.push({ lv: 'warn', t: '冰奶茶偏多', d: `本经期已喝 ${stats.icedTea} 杯冰奶茶。敏感体质建议减量。`, sym: '小腹不适、痛经' });
 
+  if (stats.icedCoffee >= 3) stage.push({ lv: 'warn', t: '冰咖啡摄入偏高', d: `本经期已喝 ${stats.icedCoffee} 杯冰咖啡（${avgDays} 天）。冰冷刺激血管收缩、咖啡因兴奋神经，易诱发小腹冷痛与痛经。`, sym: '小腹冷痛、头痛、痛经加重' });
+  else if (stats.icedCoffee >= 2) stage.push({ lv: 'warn', t: '冰咖啡偏多', d: `本经期已喝 ${stats.icedCoffee} 杯冰咖啡。敏感体质建议减量。`, sym: '小腹不适、痛经' });
+
   if (stats.hotTea >= 3) stage.push({ lv: 'warn', t: '热奶茶摄入偏高', d: `本经期已喝 ${stats.hotTea} 杯热奶茶。咖啡因与糖分较高，可能影响睡眠与情绪。`, sym: '失眠、情绪波动、乳房胀痛' });
+
+  if (stats.hotCoffee >= 3) stage.push({ lv: 'warn', t: '热咖啡摄入偏高', d: `本经期已喝 ${stats.hotCoffee} 杯热咖啡。咖啡因偏高，易影响睡眠、加重焦虑与乳房胀痛。`, sym: '失眠、心悸、焦虑、乳房胀痛' });
 
   if (stats.spicy >= 3) stage.push({ lv: 'warn', t: '吃辣偏多', d: `本经期已吃 ${stats.spicy} 份辣。辛辣促进盆腔充血和前列腺素分泌。`, sym: '子宫痉挛痛、胃痛、腹泻' });
 
-  if (totalCaffeine >= 5) stage.push({ lv: 'warn', t: '咖啡因摄入较高', d: `热/冰奶茶合计 ${totalCaffeine} 杯，咖啡因总量较高，易影响睡眠和加重焦虑。`, sym: '失眠、心悸、烦躁' });
+  if (totalCaffeine >= 5) stage.push({ lv: 'warn', t: '咖啡因摄入较高', d: `奶茶与咖啡合计 ${totalCaffeine} 杯，咖啡因总量较高，易影响睡眠、加重焦虑与心悸。`, sym: '失眠、心悸、烦躁、焦虑' });
 
-  if (stats.icedTea >= 2 && stats.spicy >= 3) stage.push({ lv: 'warn', t: '高风险组合', d: '冰奶茶和辣都偏多，容易加重经期炎症反应和子宫痉挛，建议后续几天清淡饮食。', sym: '严重痛经、腹泻、肠胃不适' });
+  if ((stats.icedTea >= 2 || stats.icedCoffee >= 2) && stats.spicy >= 3) stage.push({ lv: 'warn', t: '高风险组合', d: '冰饮（冰奶茶/冰咖啡）和辣都偏多，容易加重经期炎症反应和子宫痉挛，建议后续几天清淡饮食。', sym: '严重痛经、腹泻、肠胃不适' });
 
   if (stats.exDays >= 3) stage.push({ lv: 'good', t: '运动达标', d: `本经期已运动 ${stats.exDays} 天（共 ${stats.exMin} 分钟）。规律运动可显著降低经期疼痛（Cochrane 2019 系统综述）。`, sym: '' });
   else if (stats.exDays > 0) stage.push({ lv: 'info', t: '运动偏少', d: `本经期仅运动 ${stats.exDays} 天。建议再安排 1–2 次温和运动（散步、瑜伽、拉伸）。`, sym: '小腹坠胀、情绪低落' });
@@ -232,16 +241,18 @@ function healthAdvice(stats, p, h) {
   if (ended) {
     /* 下一轮经期健康建议 */
     if (stats.icedTea >= 2) next.push({ lv: 'warn', t: '下一轮建议：减少冰饮', d: `本轮喝了 ${stats.icedTea} 杯冰奶茶，下一轮经期建议提前 3–5 天开始减少生冷，可降低痛经发生概率。`, sym: '小腹冷痛、痛经' });
+    if (stats.icedCoffee >= 2) next.push({ lv: 'warn', t: '下一轮建议：减少冰饮', d: `本轮喝了 ${stats.icedCoffee} 杯冰咖啡，下一轮经期建议提前 3–5 天开始减少冰冷饮品，可降低痛经发生概率。`, sym: '小腹冷痛、痛经' });
     if (stats.spicy >= 3) next.push({ lv: 'warn', t: '下一轮建议：清淡饮食', d: `本轮吃了 ${stats.spicy} 份辣，下一轮经期前一周建议减少辛辣，避免前列腺素过度分泌。`, sym: '子宫痉挛、胃痛' });
-    if (totalCaffeine >= 5) next.push({ lv: 'info', t: '下一轮建议：控制奶茶', d: `本轮奶茶合计 ${totalCaffeine} 杯，咖啡因摄入偏高。下一轮建议每天不超过 1 杯，并优先选热饮。`, sym: '失眠、焦虑' });
+    if (totalCaffeine >= 5) next.push({ lv: 'info', t: '下一轮建议：控制咖啡因', d: `本轮含咖啡因饮品（奶茶/咖啡）合计 ${totalCaffeine} 杯，摄入偏高。下一轮建议每天不超过 1 杯，并优先选温热饮品。`, sym: '失眠、焦虑' });
+    if (stats.hotCoffee >= 3) next.push({ lv: 'info', t: '下一轮建议：控制咖啡', d: `本轮喝了 ${stats.hotCoffee} 杯热咖啡，咖啡因偏高。下一轮建议每天不超过 1 杯，午后避免含咖啡因饮品。`, sym: '失眠、焦虑' });
     if (stats.exDays >= 3) next.push({ lv: 'good', t: '下一轮建议：保持运动', d: '本轮运动频率良好，建议在下一轮经期前继续保持每周 3–5 次温和运动。', sym: '' });
     else if (stats.exDays === 0) next.push({ lv: 'info', t: '下一轮建议：增加运动', d: '本轮未记录运动，建议从经期结束后开始逐步建立每周 3 次、每次 30 分钟以上的运动习惯。', sym: '' });
 
     /* 本轮健康风险总结 */
-    if (stats.icedTea >= 3 || stats.spicy >= 3 || totalCaffeine >= 5) {
+    if (stats.icedTea >= 3 || stats.spicy >= 3 || stats.icedCoffee >= 3 || stats.hotCoffee >= 3 || totalCaffeine >= 5) {
       risk.push({ lv: 'warn', t: '本轮健康风险', d: '生冷、辛辣或咖啡因摄入偏高，可能导致子宫痉挛、肠胃不适、睡眠紊乱。建议下一轮经期前提前调整饮食。', sym: '痛经加重、腹泻、失眠' });
     }
-    if (stats.exDays === 0 && (stats.icedTea >= 2 || stats.spicy >= 2)) {
+    if (stats.exDays === 0 && (stats.icedTea >= 2 || stats.spicy >= 2 || stats.icedCoffee >= 2 || stats.hotCoffee >= 2)) {
       risk.push({ lv: 'warn', t: '久坐 + 刺激饮食风险', d: '缺乏运动叠加刺激饮食，容易加重盆腔淤血和经期不适。', sym: '腹胀、便秘、痛经' });
     }
     if (cramp && (stats.icedTea >= 1 || stats.spicy >= 2)) {
@@ -265,7 +276,7 @@ function healthAdvice(stats, p, h) {
 }
 function renderHealth() {
   const t = todayKey();
-  const h = S.habits.find(x => x.date === t) || { date: t, spicy: 0, hotTea: 0, icedTea: 0, exercised: false, exerciseMin: 0 };
+  const h = S.habits.find(x => x.date === t) || { date: t, spicy: 0, hotTea: 0, icedTea: 0, hotCoffee: 0, icedCoffee: 0, exercised: false, exerciseMin: 0 };
   const p = periodAt(t) || latestPeriod();
   const stats = p ? periodHabitStats(p) : null;
   const adv = stats ? healthAdvice(stats, p, h) : null;
@@ -283,6 +294,8 @@ function renderHealth() {
   rows += `<div class="h-row"><div class="h-name">吃辣</div>${step('spicy', '份', h.spicy)}</div>`;
   rows += `<div class="h-row"><div class="h-name">热奶茶</div>${step('hotTea', '杯', h.hotTea)}</div>`;
   rows += `<div class="h-row"><div class="h-name">冰奶茶</div>${step('icedTea', '杯', h.icedTea)}</div>`;
+  rows += `<div class="h-row"><div class="h-name">热咖啡</div>${step('hotCoffee', '杯', h.hotCoffee)}</div>`;
+  rows += `<div class="h-row"><div class="h-name">冰咖啡</div>${step('icedCoffee', '杯', h.icedCoffee)}</div>`;
 
   /* 今日打卡区域 */
   const todayHtml = `<div class="h-section"><div class="h-section-title">今日打卡</div><div class="h-rows">${rows}</div></div>`;
@@ -297,6 +310,8 @@ function renderHealth() {
         <div class="h-total${stats.spicy >= 3 ? ' warn' : ''}"><div class="h-total-n">${stats.spicy}</div><div class="h-total-l">吃辣份</div></div>
         <div class="h-total${stats.hotTea >= 3 ? ' warn' : ''}"><div class="h-total-n">${stats.hotTea}</div><div class="h-total-l">热奶茶杯</div></div>
         <div class="h-total${stats.icedTea >= 2 ? ' warn' : ''}"><div class="h-total-n">${stats.icedTea}</div><div class="h-total-l">冰奶茶杯</div></div>
+        <div class="h-total${stats.hotCoffee >= 3 ? ' warn' : ''}"><div class="h-total-n">${stats.hotCoffee}</div><div class="h-total-l">热咖啡杯</div></div>
+        <div class="h-total${stats.icedCoffee >= 2 ? ' warn' : ''}"><div class="h-total-n">${stats.icedCoffee}</div><div class="h-total-l">冰咖啡杯</div></div>
       </div></div>`;
   }
 
@@ -312,7 +327,7 @@ function renderHealth() {
     };
     const nextTitle = ended ? '下一轮经期建议（基于本轮记录）' : '当前阶段预测';
     const nextList = ended ? adv.next : adv.next.slice(0, 0); // 未结束时不显示下一轮
-    const foodRecorded = (h.spicy > 0 || h.hotTea > 0 || h.icedTea > 0) || (stats && (stats.spicy > 0 || stats.hotTea > 0 || stats.icedTea > 0));
+    const foodRecorded = (h.spicy > 0 || h.hotTea > 0 || h.icedTea > 0 || h.hotCoffee > 0 || h.icedCoffee > 0) || (stats && (stats.spicy > 0 || stats.hotTea > 0 || stats.icedTea > 0 || stats.hotCoffee > 0 || stats.icedCoffee > 0));
     let symHtml = '';
     if (foodRecorded) {
       if (adv.syms.length) symHtml = `<div class="h-sym"><div class="h-sym-title">可能出现的不适</div><div class="h-sym-list">${adv.syms.join(' · ')}</div><div class="h-sym-note">以上为基于记录的习惯推测，个体差异大，如有严重不适请及时就医。</div></div>`;
@@ -434,11 +449,11 @@ function renderToday() {
       <div class="sub">${sub}</div>
       ${dailyHtml}
     </div>
+    ${mini ? `<div class="mini">${mini}</div>` : ''}
     <div class="btn-row">
       <button class="btn" data-action="open-period">记经期</button>
     </div>
-    ${healthHtml}
-    ${mini ? `<div class="mini">${mini}</div>` : ''}`;
+    ${healthHtml}`;
 }
 
 function renderCalendar() {

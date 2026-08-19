@@ -552,7 +552,7 @@ body {
 }
 .h-section-sub { font-size: 11px; color: var(--ink-2); font-weight: 400; }
 .h-totals {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px;
   width: 100%;
 }
 .h-total {
