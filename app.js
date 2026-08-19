@@ -463,7 +463,9 @@ function renderCalendar() {
   const startDow = (first.getDay() + 6) % 7;
   const daysInMon = new Date(y, m + 1, 0).getDate();
   const set = periodDaySet();
-  const ovu = ovulation(), fw = fertileWindow();
+  const hasRecords = S.periods.length > 0;
+  const ovu = hasRecords ? ovulation() : null;
+  const fw = hasRecords ? fertileWindow() : [null, null];
   const lp = latestPeriod();
   const lpEndEst = lp ? periodEndEst(lp) : null;
   const t = todayKey();
@@ -480,8 +482,8 @@ function renderCalendar() {
     let cls = 'day';
     if (set.has(ds)) cls += ' period';
     else if (lp && !lp.end && ds > lp.start && ds <= lpEndEst) cls += ' period-pred';
-    else if (ds >= fw[0] && ds <= fw[1]) cls += ' fertile';
-    if (ds === ovu) cls += ' ovu';
+    else if (hasRecords && ds >= fw[0] && ds <= fw[1]) cls += ' fertile';
+    if (hasRecords && ds === ovu) cls += ' ovu';
     if (ds === t) cls += ' today';
     const hasProc = procSet.has(ds);
     const isStart = startSet.has(ds);
@@ -496,9 +498,12 @@ function renderCalendar() {
   const ongoingPrompt = (lp && !lp.end)
     ? `<div class="cal-prompt">当前经期自 ${fmtMD(lp.start)} 开始，尚未记录结束日。可在正确日期点「记经期」→「结束本次」。</div>`
     : '';
+  const legendFertileOvu = hasRecords
+    ? '<span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span>'
+    : '';
   return `<div class="cal-head"><button data-action="cal-prev">‹</button><div class="m">${y}年${m + 1}月</div><button data-action="cal-next">›</button></div>
    <div class="cal-grid"><div class="cal-dow">一</div><div class="cal-dow">二</div><div class="cal-dow">三</div><div class="cal-dow">四</div><div class="cal-dow">五</div><div class="cal-dow">六</div><div class="cal-dow">日</div>${cells}</div>
-   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span><span><i style="background:rgba(179,157,219,.35);border:1px solid rgba(179,157,219,.5)"></i>易孕窗口</span><span><i style="background:rgba(246,193,119,.42);border:1px solid rgba(246,193,119,.6);color:#8a6d2b"></i>排卵日</span><span><i class="legend-record">记</i>过程记录</span><span><i class="legend-start">始</i>经期开始</span><span><i class="legend-end">止</i>经期结束</span></div>
+   <div class="legend"><span><i style="background:var(--pink)"></i>经期</span><span><i style="background:rgba(244,143,177,.28);border:1px dashed rgba(236,106,152,.6)"></i>经期(推算)</span>${legendFertileOvu}<span><i class="legend-record">记</i>过程记录</span><span><i class="legend-start">始</i>经期开始</span><span><i class="legend-end">止</i>经期结束</span></div>
    ${ongoingPrompt}`;
 }
 
